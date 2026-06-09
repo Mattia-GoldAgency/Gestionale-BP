@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { generaAtto } from "@/lib/backend";
-import { BUCKET_DOCUMENTI, BUCKET_ATTI, type Pratica } from "@/lib/types";
+import { BUCKET_DOCUMENTI, BUCKET_ATTI, mimePerFile, type Pratica } from "@/lib/types";
 
 export interface DatiMancantiState {
   error?: string;
@@ -97,7 +97,7 @@ async function eseguiGenerazione(
   const bytes = Buffer.from(gen.docBase64, "base64");
   const attoPath = `${pratica.user_id}/${pratica.id}/${gen.nomeFile}`;
   const up = await supabase.storage.from(BUCKET_ATTI).upload(attoPath, bytes, {
-    contentType: "application/msword",
+    contentType: mimePerFile(gen.nomeFile),
     upsert: true,
   });
   if (up.error) return { error: `Salvataggio atto fallito: ${up.error.message}` };

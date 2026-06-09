@@ -27,3 +27,11 @@ export interface Pratica {
 
 export const BUCKET_DOCUMENTI = "documenti";
 export const BUCKET_ATTI = "atti";
+
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+// MIME corretto in base all'estensione del file dell'atto.
+export function mimePerFile(nome: string): string {
+  return nome.toLowerCase().endsWith(".docx") ? DOCX_MIME : "application/msword";
+}

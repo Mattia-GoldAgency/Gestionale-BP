@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { BUCKET_ATTI, type Pratica } from "@/lib/types";
+import { BUCKET_ATTI, mimePerFile, type Pratica } from "@/lib/types";
 
 // Scarica l'atto generato. RLS garantisce che solo il proprietario vi acceda.
 export async function GET(
@@ -33,10 +33,10 @@ export async function GET(
     return NextResponse.json({ error: "Download fallito" }, { status: 500 });
   }
 
-  const nome = pratica.nome_file_atto ?? `atto_${id}.doc`;
+  const nome = pratica.nome_file_atto ?? `atto_${id}.docx`;
   return new NextResponse(file.stream(), {
     headers: {
-      "Content-Type": "application/msword",
+      "Content-Type": mimePerFile(nome),
       "Content-Disposition": `attachment; filename="${nome}"`,
       "Cache-Control": "no-store",
     },

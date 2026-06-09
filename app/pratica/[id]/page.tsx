@@ -62,7 +62,7 @@ export default async function PraticaPage({
                 href={`/api/pratica/${id}/download`}
                 className="btn btn-primary self-start"
               >
-                Scarica l&apos;atto (.doc)
+                Scarica l&apos;atto (.docx)
               </a>
             </div>
           ) : pratica.stato === "errore" ? (

@@ -1,3 +1,5 @@
+import { buildDocxBase64 } from "./docx";
+
 // Contratto di integrazione tra il frontend (Vercel) e il motore Python
 // on-premise (atto_core). Questo modulo è l'UNICO punto di accoppiamento:
 // l'agente che sviluppa il backend deve esporre due endpoint conformi a questi
@@ -119,8 +121,10 @@ function mockEstrazione(): RisultatoEstrazione {
   };
 }
 
-function mockGenerazione(input: InputGenerazione): RisultatoGenerazione {
-  // Genera un .doc minimale (RTF, apribile da Word) come segnaposto.
+async function mockGenerazione(
+  input: InputGenerazione
+): Promise<RisultatoGenerazione> {
+  // Genera un vero .docx (OOXML) come segnaposto.
   const righe = [
     "ATTO DI MUTUO (ANTEPRIMA MOCK)",
     "",
@@ -132,13 +136,9 @@ function mockGenerazione(input: InputGenerazione): RisultatoGenerazione {
     "",
     "NB: documento di prova generato senza backend (BACKEND_URL non impostato).",
   ];
-  const rtf =
-    "{\\rtf1\\ansi\\deff0 " +
-    righe.map((r) => r.replace(/[\\{}]/g, "")).join("\\par ") +
-    "}";
   return {
-    docBase64: Buffer.from(rtf, "utf-8").toString("base64"),
-    nomeFile: `atto_mock_${input.praticaId}.doc`,
+    docBase64: await buildDocxBase64(righe),
+    nomeFile: `atto_mock_${input.praticaId}.docx`,
     coverage: 0,
     semaforo: "giallo",
     reportValidazione: { mock: true },
