@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f5f2;
+  --surface: #ffffff;
+  --foreground: #1c1a17;
+  --muted: #6b6457;
+  --border: #e4e0d8;
+  --accent: #7a1f2b; /* bordeaux notarile */
+  --accent-fg: #ffffff;
+  --ring: #b08d57; /* oro tenue */
+  --verde: #1f7a4d;
+  --giallo: #b8860b;
+  --rosso: #a3262e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans), Georgia, serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Componenti riutilizzabili in stile premium notarile */
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(28, 26, 23, 0.04),
+      0 8px 24px -12px rgba(28, 26, 23, 0.18);
+  }
+
+  .label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+  }
+
+  .input,
+  .select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.95rem;
+    color: var(--foreground);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input:focus,
+  .select:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.55rem;
+    padding: 0.7rem 1.2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s, transform 0.05s;
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-fg);
+    border: 1px solid var(--accent);
+  }
+  .btn-primary:hover {
+    background: color-mix(in srgb, var(--accent) 88%, black);
+  }
+  .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover {
+    background: var(--background);
+  }
+
+  .field-error {
+    color: var(--rosso);
+    font-size: 0.82rem;
+    margin-top: 0.35rem;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 999px;
+  }
+}

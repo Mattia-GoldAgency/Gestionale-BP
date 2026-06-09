@@ -1,0 +1,146 @@
+// Contratto di integrazione tra il frontend (Vercel) e il motore Python
+// on-premise (atto_core). Questo modulo è l'UNICO punto di accoppiamento:
+// l'agente che sviluppa il backend deve esporre due endpoint conformi a questi
+// tipi. Finché BACKEND_URL non è configurato, si usa un mock deterministico
+// per poter provare l'intero flusso UI (incl. la schermata "dati mancanti").
+
+export type TipoCampo =
+  | "tasso"
+  | "importo"
+  | "data"
+  | "numero"
+  | "testo"
+  | "durata";
+
+export interface CampoMancante {
+  chiave: string; // es. "tasso_interesse"
+  etichetta: string; // es. "Tasso di interesse (%)"
+  tipo: TipoCampo;
+  obbligatorio: boolean;
+  hint?: string; // spiegazione del perché manca
+}
+
+export type Semaforo = "verde" | "giallo" | "rosso";
+
+export interface RisultatoEstrazione {
+  campiMancanti: CampoMancante[];
+  bancaRiconosciuta: boolean;
+  semaforoPreliminare: Semaforo;
+}
+
+export interface RisultatoGenerazione {
+  // Documento generato in base64 (il frontend lo salva su storage e lo serve).
+  docBase64: string;
+  nomeFile: string;
+  coverage: number; // 0-100
+  semaforo: Semaforo;
+  reportValidazione: Record<string, unknown>;
+}
+
+export interface InputEstrazione {
+  praticaId: string;
+  notaio: string;
+  dataStipulaISO: string;
+  rnpUrl: string;
+  minutaUrl: string;
+}
+
+export interface InputGenerazione extends InputEstrazione {
+  datiForniti: Record<string, string>;
+}
+
+function backendUrl(): string | null {
+  const u = process.env.BACKEND_URL;
+  return u && u.trim() ? u.replace(/\/$/, "") : null;
+}
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const base = backendUrl()!;
+  const res = await fetch(`${base}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(process.env.BACKEND_API_KEY
+        ? { Authorization: `Bearer ${process.env.BACKEND_API_KEY}` }
+        : {}),
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Backend ${path} ha risposto ${res.status}`);
+  }
+  return (await res.json()) as T;
+}
+
+// --- Stadio 3+4: estrazione LLM + merge registry -> campi mancanti ---
+export async function estraiPratica(
+  input: InputEstrazione
+): Promise<RisultatoEstrazione> {
+  if (!backendUrl()) return mockEstrazione();
+  return postJson<RisultatoEstrazione>("/api/estrai", input);
+}
+
+// --- Stadio 5+6: assemblaggio DOCX + validazione ---
+export async function generaAtto(
+  input: InputGenerazione
+): Promise<RisultatoGenerazione> {
+  if (!backendUrl()) return mockGenerazione(input);
+  return postJson<RisultatoGenerazione>("/api/genera", input);
+}
+
+export function backendConfigurato(): boolean {
+  return backendUrl() !== null;
+}
+
+// ---------------------------------------------------------------------------
+// MOCK (solo quando BACKEND_URL non è impostato) — utile per testare la UI.
+// ---------------------------------------------------------------------------
+function mockEstrazione(): RisultatoEstrazione {
+  return {
+    bancaRiconosciuta: true,
+    semaforoPreliminare: "giallo",
+    campiMancanti: [
+      {
+        chiave: "tasso_interesse",
+        etichetta: "Tasso di interesse (%)",
+        tipo: "tasso",
+        obbligatorio: true,
+        hint: "Non rilevato nella minuta né nella RNP.",
+      },
+      {
+        chiave: "durata_mesi",
+        etichetta: "Durata del mutuo (mesi)",
+        tipo: "durata",
+        obbligatorio: true,
+        hint: "Dato necessario per il piano di ammortamento.",
+      },
+    ],
+  };
+}
+
+function mockGenerazione(input: InputGenerazione): RisultatoGenerazione {
+  // Genera un .doc minimale (RTF, apribile da Word) come segnaposto.
+  const righe = [
+    "ATTO DI MUTUO (ANTEPRIMA MOCK)",
+    "",
+    `Notaio: ${input.notaio}`,
+    `Data stipula (ISO): ${input.dataStipulaISO}`,
+    "",
+    "Dati forniti:",
+    ...Object.entries(input.datiForniti).map(([k, v]) => `  - ${k}: ${v}`),
+    "",
+    "NB: documento di prova generato senza backend (BACKEND_URL non impostato).",
+  ];
+  const rtf =
+    "{\\rtf1\\ansi\\deff0 " +
+    righe.map((r) => r.replace(/[\\{}]/g, "")).join("\\par ") +
+    "}";
+  return {
+    docBase64: Buffer.from(rtf, "utf-8").toString("base64"),
+    nomeFile: `atto_mock_${input.praticaId}.doc`,
+    coverage: 0,
+    semaforo: "giallo",
+    reportValidazione: { mock: true },
+  };
+}
