@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
+import { logAudit, ipCorrente } from "@/lib/audit";
 
 export interface LoginState {
   error?: string;
@@ -26,11 +27,21 @@ export async function signIn(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
   if (error) {
     return { error: "Credenziali non valide. Riprova." };
   }
+
+  await logAudit({
+    azione: "login",
+    userId: data.user?.id,
+    email: data.user?.email,
+    ip: await ipCorrente(),
+  });
 
   // redirect lancia un'eccezione di navigazione: deve stare fuori da try/catch.
   redirect("/dashboard");

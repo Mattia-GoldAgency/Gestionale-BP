@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { signOut } from "@/app/login/actions";
 
 export function AppHeader({
@@ -14,10 +15,14 @@ export function AppHeader({
       style={{ borderColor: "var(--border)", background: "var(--surface)" }}
     >
       <div className="mx-auto max-w-4xl px-6 py-3 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <span
-            className="dot"
-            style={{ background: "var(--accent)", width: "0.7rem", height: "0.7rem" }}
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Image
+            src="/pittogramma-busani.svg"
+            alt="Studio Notarile Busani &amp; Partners"
+            width={505}
+            height={510}
+            priority
+            className="h-7 w-auto"
           />
           <span className="font-title font-semibold tracking-tight">
             Atti di Mutuo · Busani &amp; Partners

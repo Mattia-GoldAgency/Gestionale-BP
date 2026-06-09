@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/app-header";
 import { SemaforoBadge } from "@/components/semaforo";
 import { generaPratica } from "./actions";
+import { DeletePraticaButton } from "./delete-button";
 import type { Pratica } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,10 @@ export default async function PraticaPage({
               </form>
             </div>
           )}
+
+          <div className="pt-2 mt-2 border-t" style={{ borderColor: "var(--border)" }}>
+            <DeletePraticaButton praticaId={id} />
+          </div>
         </div>
       </main>
     </>

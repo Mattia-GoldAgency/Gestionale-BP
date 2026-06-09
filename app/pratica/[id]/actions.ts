@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdmin } from "@/lib/roles";
+import { logAudit, ipCorrente } from "@/lib/audit";
 import { generaAtto } from "@/lib/backend";
 import { BUCKET_DOCUMENTI, BUCKET_ATTI, mimePerFile, type Pratica } from "@/lib/types";
 
@@ -116,5 +119,56 @@ async function eseguiGenerazione(
     .eq("id", pratica.id);
   if (updErr) return { error: `Aggiornamento pratica fallito: ${updErr.message}` };
 
+  await logAudit({
+    azione: "genera_atto",
+    userId: pratica.user_id,
+    praticaId: pratica.id,
+    dettagli: { notaio: pratica.notaio, semaforo: gen.semaforo, nomeFile: gen.nomeFile },
+  });
+
   return {};
+}
+
+// Diritto all'oblio: elimina la pratica e TUTTI i suoi file dallo storage.
+// Consentito al proprietario della pratica o a un admin.
+export async function eliminaPratica(praticaId: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const admin = createAdminClient();
+  const { data: pratica } = await admin
+    .from("pratiche")
+    .select("*")
+    .eq("id", praticaId)
+    .single<Pratica>();
+  if (!pratica) redirect("/dashboard");
+
+  if (pratica.user_id !== user.id && !isAdmin(user)) {
+    throw new Error("Non autorizzato a eliminare questa pratica.");
+  }
+
+  const docFiles = [pratica.rnp_path, pratica.minuta_path].filter(
+    (p): p is string => Boolean(p)
+  );
+  if (docFiles.length)
+    await admin.storage.from(BUCKET_DOCUMENTI).remove(docFiles);
+  if (pratica.atto_path)
+    await admin.storage.from(BUCKET_ATTI).remove([pratica.atto_path]);
+
+  await admin.from("pratiche").delete().eq("id", praticaId);
+
+  await logAudit({
+    azione: "elimina_pratica",
+    userId: user.id,
+    email: user.email,
+    praticaId,
+    ip: await ipCorrente(),
+    dettagli: { notaio: pratica.notaio, daAdmin: pratica.user_id !== user.id },
+  });
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
 }

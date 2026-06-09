@@ -7,6 +7,7 @@ import { notaioById } from "@/lib/notai";
 import { estraiPratica } from "@/lib/backend";
 import { BUCKET_DOCUMENTI } from "@/lib/types";
 import { dataStipulaInLettere } from "@/lib/data-stipula";
+import { logAudit, ipCorrente } from "@/lib/audit";
 
 export interface CreaPraticaState {
   error?: string;
@@ -108,6 +109,15 @@ export async function creaPratica(
 
   if (insert.error)
     return { error: `Salvataggio pratica fallito: ${insert.error.message}` };
+
+  await logAudit({
+    azione: "upload_pratica",
+    userId: user.id,
+    email: user.email,
+    praticaId,
+    ip: await ipCorrente(),
+    dettagli: { notaio: notaio.nome, dataStipula, datiMancanti: estrazione.campiMancanti.length },
+  });
 
   revalidatePath("/dashboard");
   redirect(`/pratica/${praticaId}`);

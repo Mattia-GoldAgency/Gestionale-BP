@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 import { BUCKET_ATTI, mimePerFile, type Pratica } from "@/lib/types";
 
 // Scarica l'atto generato. RLS garantisce che solo il proprietario vi acceda.
@@ -34,6 +35,15 @@ export async function GET(
   }
 
   const nome = pratica.nome_file_atto ?? `atto_${id}.docx`;
+
+  await logAudit({
+    azione: "download_atto",
+    userId: user.id,
+    email: user.email,
+    praticaId: id,
+    dettagli: { nomeFile: nome },
+  });
+
   return new NextResponse(file.stream(), {
     headers: {
       "Content-Type": mimePerFile(nome),

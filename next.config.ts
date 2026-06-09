@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "20mb",
     },
   },
+  images: {
+    // I loghi dello Studio sono SVG locali e fidati.
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "inline",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
 };
 
 export default nextConfig;

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { LoginForm } from "./login-form";
 
@@ -12,6 +13,10 @@ export default function LoginPage() {
           style={{ color: "var(--muted)" }}
         >
           Gli account sono gestiti dall&apos;amministratore dello Studio.
+          <br />
+          <Link href="/privacy" className="underline">
+            Informativa sul trattamento dei dati
+          </Link>
         </p>
       </div>
     </main>

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin, type Ruolo, ADMIN_EMAILS } from "@/lib/roles";
 import { generaPassword } from "@/lib/password";
+import { logAudit, ipCorrente } from "@/lib/audit";
 
 // Verifica che il chiamante sia admin. Da invocare in ogni azione admin.
 async function requireAdmin() {
@@ -61,7 +62,7 @@ export async function creaUtente(
   _prev: CreaUtenteResult,
   formData: FormData
 ): Promise<CreaUtenteResult> {
-  await requireAdmin();
+  const me = await requireAdmin();
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
@@ -81,6 +82,14 @@ export async function creaUtente(
   });
   if (error) return { error: error.message };
 
+  await logAudit({
+    azione: "crea_utente",
+    userId: me.id,
+    email: me.email,
+    ip: await ipCorrente(),
+    dettagli: { nuovoUtente: email, ruolo },
+  });
+
   revalidatePath("/admin");
   return { ok: { email, password } };
 }
@@ -91,8 +100,16 @@ export async function eliminaUtente(formData: FormData): Promise<void> {
   if (!id) return;
   if (id === me.id) throw new Error("Non puoi eliminare il tuo stesso account.");
   const admin = createAdminClient();
+  const { data: target } = await admin.auth.admin.getUserById(id);
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) throw new Error(error.message);
+  await logAudit({
+    azione: "elimina_utente",
+    userId: me.id,
+    email: me.email,
+    ip: await ipCorrente(),
+    dettagli: { utenteEliminato: target.user?.email ?? id },
+  });
   revalidatePath("/admin");
 }
 
@@ -139,6 +156,28 @@ export async function resetPassword(
   if (error) return { error: error.message };
   revalidatePath("/admin");
   return { ok: { email: cur.user?.email ?? "", password } };
+}
+
+// --- Registro di audit ---
+export interface AuditRiga {
+  id: string;
+  created_at: string;
+  email: string | null;
+  azione: string;
+  pratica_id: string | null;
+  ip: string | null;
+  dettagli: Record<string, unknown> | null;
+}
+
+export async function ultimiAudit(limit = 50): Promise<AuditRiga[]> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("audit_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data as AuditRiga[]) ?? [];
 }
 
 // --- Impostazioni base ---
