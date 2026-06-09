@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 
-export function AppHeader({ email }: { email?: string | null }) {
+export function AppHeader({
+  email,
+  isAdmin = false,
+}: {
+  email?: string | null;
+  isAdmin?: boolean;
+}) {
   return (
     <header
       className="w-full border-b"
@@ -13,11 +19,16 @@ export function AppHeader({ email }: { email?: string | null }) {
             className="dot"
             style={{ background: "var(--accent)", width: "0.7rem", height: "0.7rem" }}
           />
-          <span className="font-semibold tracking-tight">
+          <span className="font-title font-semibold tracking-tight">
             Atti di Mutuo · Busani &amp; Partners
           </span>
         </Link>
         <div className="flex items-center gap-4">
+          {isAdmin ? (
+            <Link href="/admin" className="text-sm font-title" style={{ color: "var(--accent)" }}>
+              Amministrazione
+            </Link>
+          ) : null}
           {email ? (
             <span className="text-sm" style={{ color: "var(--muted)" }}>
               {email}

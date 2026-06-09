@@ -41,18 +41,34 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublic = path === "/login" || path.startsWith("/auth");
 
-  // Utente non autenticato su rotta privata -> login
-  if (!user && !isPublic) {
+  const redirectTo = (p: string) => {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = p;
     return NextResponse.redirect(url);
-  }
+  };
 
-  // Utente autenticato che apre /login -> dashboard
-  if (user && path === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  // Utente non autenticato su rotta privata -> login
+  if (!user && !isPublic) return redirectTo("/login");
+
+  if (user) {
+    const mustChange = Boolean(user.user_metadata?.must_change_password);
+    const email = (user.email ?? "").toLowerCase();
+    const isAdmin =
+      email === "mattia.bottoni@notaio-busani.it" ||
+      user.user_metadata?.role === "admin";
+
+    // Cambio password obbligatorio al primo accesso.
+    if (mustChange && path !== "/cambia-password" && !isPublic) {
+      return redirectTo("/cambia-password");
+    }
+
+    // Area admin riservata.
+    if (path.startsWith("/admin") && !isAdmin) {
+      return redirectTo("/dashboard");
+    }
+
+    // Utente autenticato che apre /login -> dashboard
+    if (path === "/login") return redirectTo("/dashboard");
   }
 
   return supabaseResponse;

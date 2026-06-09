@@ -1,17 +1,29 @@
 @import "tailwindcss";
 
+/* ===================================================================
+   Brand Studio Notarile Busani & Partners
+   Palette principale:  #2C4457 (blu)  ·  #D9DBDC (cool gray 1)
+   Titoli:    Raleway SemiBold
+   Paragrafi: Helvetica Neue Thin
+   =================================================================== */
 :root {
-  --background: #f6f5f2;
+  --brand-blue: #2c4457;
+  --brand-gray: #d9dbdc;
+
+  --background: #f4f5f6; /* tinta chiara del cool gray */
   --surface: #ffffff;
-  --foreground: #1c1a17;
-  --muted: #6b6457;
-  --border: #e4e0d8;
-  --accent: #7a1f2b; /* bordeaux notarile */
+  --foreground: #233544; /* blu scuro per il testo */
+  --muted: #6b7a85;
+  --border: #d9dbdc;
+  --accent: #2c4457;
   --accent-fg: #ffffff;
-  --ring: #b08d57; /* oro tenue */
-  --verde: #1f7a4d;
-  --giallo: #b8860b;
-  --rosso: #a3262e;
+  --ring: #2c4457;
+  --verde: #2e7d4f;
+  --giallo: #b07d12;
+  --rosso: #b23b41;
+
+  --font-titoli: var(--font-raleway), "Trebuchet MS", sans-serif;
+  --font-testo: "Helvetica Neue", "HelveticaNeue", Helvetica, Arial, sans-serif;
 }
 
 @theme inline {
@@ -23,31 +35,44 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans), Georgia, serif;
+  --font-sans: var(--font-testo);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-testo);
+  font-weight: 300; /* Helvetica Neue Thin / Light */
+  letter-spacing: 0.01em;
 }
 
-/* Componenti riutilizzabili in stile premium notarile */
+/* Titoli in Raleway SemiBold */
+h1,
+h2,
+h3,
+.font-title {
+  font-family: var(--font-titoli);
+  font-weight: 600;
+  color: var(--brand-blue);
+  letter-spacing: 0;
+}
+
 @layer components {
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 0.75rem;
-    box-shadow: 0 1px 2px rgba(28, 26, 23, 0.04),
-      0 8px 24px -12px rgba(28, 26, 23, 0.18);
+    box-shadow: 0 1px 2px rgba(44, 68, 87, 0.05),
+      0 10px 30px -16px rgba(44, 68, 87, 0.22);
   }
 
   .label {
     display: block;
-    font-size: 0.8rem;
+    font-family: var(--font-titoli);
+    font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--muted);
+    letter-spacing: 0.03em;
+    color: var(--brand-blue);
     margin-bottom: 0.4rem;
     text-transform: uppercase;
   }
@@ -60,6 +85,7 @@ body {
     border-radius: 0.55rem;
     padding: 0.65rem 0.8rem;
     font-size: 0.95rem;
+    font-weight: 400;
     color: var(--foreground);
     transition: border-color 0.15s, box-shadow 0.15s;
   }
@@ -67,7 +93,7 @@ body {
   .select:focus {
     outline: none;
     border-color: var(--ring);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
   }
 
   .btn {
@@ -77,8 +103,10 @@ body {
     gap: 0.5rem;
     border-radius: 0.55rem;
     padding: 0.7rem 1.2rem;
+    font-family: var(--font-titoli);
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
     cursor: pointer;
     transition: background 0.15s, opacity 0.15s, transform 0.05s;
   }
@@ -91,7 +119,7 @@ body {
     border: 1px solid var(--accent);
   }
   .btn-primary:hover {
-    background: color-mix(in srgb, var(--accent) 88%, black);
+    background: color-mix(in srgb, var(--accent) 85%, black);
   }
   .btn-primary:disabled {
     opacity: 0.55;
@@ -99,15 +127,28 @@ body {
   }
   .btn-ghost {
     background: transparent;
-    color: var(--foreground);
+    color: var(--brand-blue);
     border: 1px solid var(--border);
   }
   .btn-ghost:hover {
     background: var(--background);
   }
+  .btn-danger {
+    background: transparent;
+    color: var(--rosso);
+    border: 1px solid color-mix(in srgb, var(--rosso) 40%, var(--border));
+  }
+  .btn-danger:hover {
+    background: color-mix(in srgb, var(--rosso) 8%, white);
+  }
 
   .field-error {
     color: var(--rosso);
+    font-size: 0.82rem;
+    margin-top: 0.35rem;
+  }
+  .field-ok {
+    color: var(--verde);
     font-size: 0.82rem;
     margin-top: 0.35rem;
   }
@@ -118,12 +159,36 @@ body {
     gap: 0.4rem;
     border-radius: 999px;
     padding: 0.2rem 0.7rem;
-    font-size: 0.78rem;
+    font-family: var(--font-titoli);
+    font-size: 0.74rem;
     font-weight: 600;
+    letter-spacing: 0.02em;
   }
   .dot {
     width: 0.6rem;
     height: 0.6rem;
     border-radius: 999px;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .table th {
+    font-family: var(--font-titoli);
+    font-weight: 600;
+    text-align: left;
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
   }
 }

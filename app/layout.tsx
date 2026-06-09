@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Raleway } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Tipografia titoli del brand: Raleway SemiBold.
+const raleway = Raleway({
+  variable: "--font-raleway",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -19,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="it" className={`${raleway.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

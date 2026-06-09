@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/app-header";
 import { SemaforoBadge } from "@/components/semaforo";
+import { isAdmin } from "@/lib/roles";
 import { UploadForm } from "./upload-form";
 import type { Pratica } from "@/lib/types";
 
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <AppHeader email={user?.email} />
+      <AppHeader email={user?.email} isAdmin={isAdmin(user)} />
       <main className="mx-auto w-full max-w-4xl px-6 py-8 flex flex-col gap-8">
         <section className="card p-6 sm:p-8">
           <h2 className="text-lg font-semibold">Nuova pratica</h2>
