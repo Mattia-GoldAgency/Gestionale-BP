@@ -7,8 +7,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Esegui su tutte le rotte tranne asset statici e immagini.
+  // Esegui su tutte le rotte tranne /api (che gestiscono l'auth da sole),
+  // asset statici e immagini.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
