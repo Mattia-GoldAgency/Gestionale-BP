@@ -37,7 +37,7 @@ export default async function StoricoPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <section>
-        <h2 className="font-title font-semibold text-xl text-[var(--brand-blue)] mb-4">Storico Completo Pratiche</h2>
+        <h2 className="font-title font-semibold text-xl text-[var(--brand-blue)] mb-4">Storico pratiche completate</h2>
         <p className="text-sm text-gray-500 mb-6">
           Elenco di tutte le pratiche elaborate negli ultimi 15 giorni. Le pratiche più vecchie vengono eliminate automaticamente per motivi di privacy.
         </p>
