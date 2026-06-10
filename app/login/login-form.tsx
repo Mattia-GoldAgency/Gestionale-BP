@@ -44,7 +44,7 @@ export function LoginForm() {
 
       {state.error ? <p className="field-error">{state.error}</p> : null}
 
-      <button type="submit" className="w-full mt-4 bg-[var(--brand-blue)] text-white font-title font-semibold py-4 px-4 rounded shadow-lg hover:shadow-xl hover:bg-[#1f303e] transition-all duration-300 tracking-wide" disabled={pending}>
+      <button type="submit" className="w-full mt-4 bg-[var(--brand-blue)] !text-white font-[family-name:var(--font-titoli)] font-semibold py-4 px-4 rounded shadow-lg hover:shadow-xl hover:bg-[#1f303e] transition-all duration-300 tracking-wide" disabled={pending}>
         {pending ? "ACCESSO IN CORSO…" : "ACCEDI ALLA PIATTAFORMA"}
       </button>
     </form>

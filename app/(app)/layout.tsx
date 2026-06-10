@@ -15,6 +15,16 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
   
   const isUserAdmin = isAdmin(user);
+  
+  // Compute initials from email (e.g. mario.rossi@... -> MR)
+  const emailStr = user?.email || "";
+  const initials = emailStr
+    .split("@")[0]
+    .split(".")
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("")
+    .slice(0, 2);
+  const displayInitials = initials || "U";
 
   return (
     <div className="flex h-screen bg-[var(--brand-light)] font-sans text-[var(--foreground)] antialiased overflow-hidden">
@@ -58,8 +68,8 @@ export default async function DashboardLayout({
         
         <div className="p-6 border-t border-[#3d5970]">
           <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-[var(--brand-gray)] text-[var(--brand-blue)] flex items-center justify-center font-bold text-sm">
-              NB
+            <div className="w-10 h-10 rounded-full bg-[var(--brand-gray)] text-[var(--brand-blue)] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm border border-[#3d5970]">
+              {displayInitials}
             </div>
             <div className="ml-3 overflow-hidden text-ellipsis whitespace-nowrap">
               <p className="text-sm font-medium">{user?.email}</p>
