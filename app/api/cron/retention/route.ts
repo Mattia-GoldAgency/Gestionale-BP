@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
@@ -5,11 +6,19 @@ import { BUCKET_DOCUMENTI, BUCKET_ATTI, type Pratica } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+// Confronto a tempo costante del Bearer (no timing leak sul secret del cron).
+function bearerValido(authorization: string | null): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const atteso = Buffer.from(`Bearer ${secret}`);
+  const fornito = Buffer.from(authorization ?? "");
+  return fornito.length === atteso.length && timingSafeEqual(fornito, atteso);
+}
+
 // Cron giornaliero (vercel.json). Cancella i file delle pratiche più vecchie
 // di N giorni (impostazione retention_giorni, default 15). I metadati restano.
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!bearerValido(req.headers.get("authorization"))) {
     return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
   }
 

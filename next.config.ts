@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Nessuna source map del bundle client in produzione: evita di esporre il
+  // sorgente originale (è già il default di Next, qui reso esplicito).
+  productionBrowserSourceMaps: false,
   experimental: {
     serverActions: {
       // RNP e minute possono pesare alcuni MB: alziamo il limite del body
