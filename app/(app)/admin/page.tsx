@@ -5,17 +5,7 @@ import { isAdmin } from "@/lib/roles";
 
 import { UsersManager } from "./users-manager";
 import { listaUtenti, salvaImpostazioni, ultimiAudit } from "./actions";
-
-const AZIONE_LABEL: Record<string, string> = {
-  login: "Accesso",
-  upload_pratica: "Upload pratica",
-  genera_atto: "Generazione atto",
-  download_atto: "Download atto",
-  elimina_pratica: "Eliminazione pratica",
-  retention_purge: "Pulizia retention",
-  crea_utente: "Creazione utente",
-  elimina_utente: "Eliminazione utente",
-};
+import { AuditClient } from "./audit-client";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +18,7 @@ export default async function AdminPage() {
   if (!isAdmin(user)) redirect("/dashboard");
 
   const utenti = await listaUtenti();
-  const audit = await ultimiAudit(50);
+  const audit = await ultimiAudit(1000);
 
   const { data: settingsRows } = await supabase
     .from("app_settings")
@@ -86,45 +76,8 @@ export default async function AdminPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg">Registro di audit (ultimi {audit.length})</h2>
-          <div className="card overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Quando</th>
-                  <th>Utente</th>
-                  <th>Azione</th>
-                  <th>Dettagli</th>
-                  <th>IP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {audit.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ color: "var(--muted)" }}>
-                      Nessun evento registrato.
-                    </td>
-                  </tr>
-                ) : (
-                  audit.map((a) => (
-                    <tr key={a.id}>
-                      <td className="text-sm" style={{ whiteSpace: "nowrap" }}>
-                        {new Date(a.created_at).toLocaleString("it-IT")}
-                      </td>
-                      <td className="text-sm">{a.email ?? "—"}</td>
-                      <td className="text-sm">{AZIONE_LABEL[a.azione] ?? a.azione}</td>
-                      <td className="text-xs" style={{ color: "var(--muted)" }}>
-                        {a.dettagli ? JSON.stringify(a.dettagli) : "—"}
-                      </td>
-                      <td className="text-xs" style={{ color: "var(--muted)" }}>
-                        {a.ip ?? "—"}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <h2 className="text-lg">Registro di audit ({audit.length} eventi)</h2>
+          <AuditClient initialAudit={audit} />
         </section>
       </main>
     </>

@@ -28,6 +28,8 @@ export interface RisultatoEstrazione {
   campiMancanti: CampoMancante[];
   bancaRiconosciuta: boolean;
   semaforoPreliminare: Semaforo;
+  nomeBanca: string | null;
+  nomeCliente: string | null;
 }
 
 export interface RisultatoGenerazione {
@@ -118,6 +120,8 @@ function mockEstrazione(): RisultatoEstrazione {
         hint: "Dato necessario per il piano di ammortamento.",
       },
     ],
+    nomeBanca: "Banca di Credito Cooperativo",
+    nomeCliente: "Mario Rossi",
   };
 }
 

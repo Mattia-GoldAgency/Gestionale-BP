@@ -103,6 +103,8 @@ export async function creaPratica(
       rnp_path: rnpPath,
       minuta_path: minutaPath,
       campi_mancanti: estrazione.campiMancanti,
+      nome_banca: estrazione.nomeBanca,
+      nome_cliente: estrazione.nomeCliente,
     })
     .select("id")
     .single();

@@ -23,6 +23,8 @@ export interface Pratica {
   coverage: number | null;
   report: Record<string, unknown> | null;
   created_at: string;
+  nome_banca: string | null;
+  nome_cliente: string | null;
 }
 
 export const BUCKET_DOCUMENTI = "documenti";

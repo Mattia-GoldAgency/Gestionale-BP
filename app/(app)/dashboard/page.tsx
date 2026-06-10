@@ -54,9 +54,11 @@ export default async function DashboardPage() {
                   className="bg-white rounded border border-[var(--brand-gray)] px-6 py-4 flex items-center justify-between hover:border-[var(--brand-blue)] hover:-translate-y-0.5 hover:shadow-md transition-all duration-300"
                 >
                   <div className="flex flex-col">
-                    <span className="font-medium text-[var(--brand-blue)]">{p.notaio}</span>
+                    <span className="font-medium text-[var(--brand-blue)]">
+                      {p.nome_banca && p.nome_cliente ? `${p.nome_banca} - ${p.nome_cliente}` : (p.nome_banca || p.nome_cliente || p.notaio)}
+                    </span>
                     <span className="text-xs text-gray-500 mt-1">
-                      Stipula {p.data_stipula} · {STATO_LABEL[p.stato] ?? p.stato}
+                      {p.notaio} · Stipula {p.data_stipula} · {STATO_LABEL[p.stato] ?? p.stato}
                     </span>
                   </div>
                   <SemaforoBadge value={p.semaforo} />
