@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Concept 1 (v2) - Busani & Partners</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        busani: {
+                            blue: '#2C4457',
+                            gray: '#D9DBDC',
+                            light: '#F8F9FA'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+                        heading: ['Raleway', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex h-screen bg-busani-light font-sans text-gray-800 antialiased overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-busani-blue text-white flex flex-col shadow-xl z-20">
+        <div class="p-6 border-b border-[#3d5970] flex items-center justify-center">
+            <!-- Actual White Logo -->
+            <img src="file:///C:/Users/pc42/BRM/Operations%20Mattia%20-%20Documenti/STUDIO%20BUSANI%26PARTNERS/LOGHI%20E%20FIRME%20MAIL/2024/Logo/1_Principale/Busani%20%26%20Partner_Bianco/RGB/Logo_Busani%20%26%20Partner_Positivo.png" alt="Busani & Partners Logo" class="w-48 h-auto">
+        </div>
+        
+        <nav class="flex-1 py-6">
+            <ul class="space-y-1">
+                <li>
+                    <a href="#" class="flex items-center px-6 py-3 bg-[#1f303e] border-r-4 border-white text-white font-medium">
+                        <svg class="w-5 h-5 mr-3 opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Gestione Pratiche
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <div class="p-6 border-t border-[#3d5970]">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-busani-gray text-busani-blue flex items-center justify-center font-bold text-sm">
+                    NB
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">notaio@busani.it</p>
+                    <p class="text-xs text-busani-gray">Amministratore</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm z-10 border-b border-busani-gray">
+            <div class="flex items-center justify-between px-8 py-4">
+                <h1 class="font-heading font-semibold text-xl text-busani-blue">Pratiche Mutuo</h1>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-400 hover:text-busani-blue transition-colors">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content scrollable area -->
+        <div class="flex-1 overflow-auto p-8">
+            <div class="max-w-4xl mx-auto space-y-8">
+                
+                <!-- Statistica: Pratiche Verdi -->
+                <div class="bg-white rounded shadow-sm border border-busani-gray p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Pratiche Completate (Semaforo Verde)</p>
+                        <h3 class="font-heading font-semibold text-3xl text-green-600">42</h3>
+                        <p class="text-xs text-gray-500 mt-1">Totale pratiche estratte con successo e validate</p>
+                    </div>
+                    <div class="h-16 w-16 bg-green-50 rounded-full flex items-center justify-center border-4 border-green-100">
+                        <span class="w-6 h-6 bg-green-500 rounded-full animate-pulse"></span>
+                    </div>
+                </div>
+
+                <!-- Nuova Pratica (Upload Form Simulata) -->
+                <section class="bg-white rounded shadow-sm border border-busani-gray p-8">
+                    <h2 class="font-heading font-semibold text-xl text-busani-blue mb-2">Nuova pratica</h2>
+                    <p class="text-sm text-gray-500 mb-6">Carica la RNP e la minuta della banca, indica il notaio e la data di stipula.</p>
+                    
+                    <div class="border-2 border-dashed border-busani-gray rounded p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p class="text-sm font-medium text-busani-blue">Trascina qui i file o clicca per selezionarli</p>
+                        <p class="text-xs text-gray-500 mt-1">Supportati: PDF, DOCX (Max 10MB)</p>
+                    </div>
+                    
+                    <div class="mt-6 flex space-x-4">
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Notaio</label>
+                            <input type="text" class="w-full border border-busani-gray rounded px-3 py-2 text-sm focus:outline-none focus:border-busani-blue" placeholder="Nome notaio">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Data Stipula</label>
+                            <input type="date" class="w-full border border-busani-gray rounded px-3 py-2 text-sm focus:outline-none focus:border-busani-blue">
+                        </div>
+                    </div>
+                    <button class="mt-6 w-full bg-busani-blue text-white font-medium py-2 rounded hover:bg-opacity-90 transition-colors shadow-sm">
+                        Crea Pratica
+                    </button>
+                </section>
+
+                <!-- Pratiche Recenti (Semafori) -->
+                <section>
+                    <h2 class="font-heading font-semibold text-xl text-busani-blue mb-4">Pratiche recenti</h2>
+                    <ul class="flex flex-col gap-3">
+                        <li class="bg-white rounded border border-busani-gray px-6 py-4 flex items-center justify-between hover:border-busani-blue hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-busani-blue">Giacomo Ridella</span>
+                                <span class="text-xs text-gray-500 mt-1">Stipula 10/06/2026 · Completata</span>
+                            </div>
+                            <!-- Semaforo Verde -->
+                            <div class="flex items-center space-x-1 border border-gray-200 rounded-full p-1 bg-gray-50">
+                                <div class="w-4 h-4 rounded-full bg-gray-300 opacity-30"></div>
+                                <div class="w-4 h-4 rounded-full bg-gray-300 opacity-30"></div>
+                                <div class="w-4 h-4 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                            </div>
+                        </li>
+                        <li class="bg-white rounded border border-busani-gray px-6 py-4 flex items-center justify-between hover:border-busani-blue hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-busani-blue">Giacomo Ridella</span>
+                                <span class="text-xs text-gray-500 mt-1">Stipula 11/06/2026 · In elaborazione</span>
+                            </div>
+                            <!-- Semaforo Giallo -->
+                            <div class="flex items-center space-x-1 border border-gray-200 rounded-full p-1 bg-gray-50">
+                                <div class="w-4 h-4 rounded-full bg-gray-300 opacity-30"></div>
+                                <div class="w-4 h-4 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]"></div>
+                                <div class="w-4 h-4 rounded-full bg-gray-300 opacity-30"></div>
+                            </div>
+                        </li>
+                        <li class="bg-white rounded border border-busani-gray px-6 py-4 flex items-center justify-between hover:border-busani-blue hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 cursor-pointer">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-busani-blue">Giulia Mannella</span>
+                                <span class="text-xs text-gray-500 mt-1">Stipula 12/06/2026 · Dati da completare</span>
+                            </div>
+                            <!-- Semaforo Rosso -->
+                            <div class="flex items-center space-x-1 border border-gray-200 rounded-full p-1 bg-gray-50">
+                                <div class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                <div class="w-4 h-4 rounded-full bg-gray-300 opacity-30"></div>
+                                <div class="w-4 h-4 rounded-full bg-gray-300 opacity-30"></div>
+                            </div>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

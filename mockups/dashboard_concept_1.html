@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Concept 1 - Busani & Partners</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        busani: {
+                            blue: '#2C4457',
+                            gray: '#D9DBDC',
+                            light: '#F8F9FA'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+                        heading: ['Raleway', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex h-screen bg-busani-light font-sans text-gray-800 antialiased overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-busani-blue text-white flex flex-col shadow-xl z-20">
+        <div class="p-6 border-b border-[#3d5970]">
+            <!-- Logo -->
+            <div class="flex items-center">
+                <div class="inline-flex flex-col items-start border-l-2 border-white pl-2">
+                    <span class="font-heading font-light text-2xl tracking-widest leading-none">BU</span>
+                    <span class="font-heading font-light text-2xl tracking-widest leading-none">SA</span>
+                    <span class="font-heading font-light text-2xl tracking-widest leading-none">NI</span>
+                </div>
+                <div class="ml-3 font-heading text-xs tracking-wider uppercase text-busani-gray border-l border-[#3d5970] pl-3">
+                    Mutui<br>Platform
+                </div>
+            </div>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-6">
+            <ul class="space-y-1">
+                <li>
+                    <a href="#" class="flex items-center px-6 py-3 bg-[#1f303e] border-r-4 border-white text-white font-medium">
+                        <svg class="w-5 h-5 mr-3 opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-6 py-3 text-busani-gray hover:bg-[#345168] hover:text-white transition-colors">
+                        <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Pratiche Mutuo
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-6 py-3 text-busani-gray hover:bg-[#345168] hover:text-white transition-colors">
+                        <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        Clienti
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-6 py-3 text-busani-gray hover:bg-[#345168] hover:text-white transition-colors">
+                        <svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Calendario Atti
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <div class="p-6 border-t border-[#3d5970]">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-busani-gray text-busani-blue flex items-center justify-center font-bold text-sm">
+                    MR
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">Mario Rossi</p>
+                    <p class="text-xs text-busani-gray">Notary Assistant</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm z-10 border-b border-busani-gray">
+            <div class="flex items-center justify-between px-8 py-4">
+                <h1 class="font-heading font-semibold text-xl text-busani-blue">Panoramica</h1>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-400 hover:text-busani-blue">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                    <button class="text-gray-400 hover:text-busani-blue relative">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content scrollable area -->
+        <div class="flex-1 overflow-auto p-8">
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded shadow-sm border border-busani-gray p-6 border-t-4 border-t-busani-blue">
+                    <p class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Pratiche Attive</p>
+                    <h3 class="font-heading font-semibold text-3xl text-busani-blue">24</h3>
+                    <p class="text-xs text-green-600 mt-2 font-medium">+3 questa settimana</p>
+                </div>
+                <div class="bg-white rounded shadow-sm border border-busani-gray p-6">
+                    <p class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Atti in Stipula</p>
+                    <h3 class="font-heading font-semibold text-3xl text-busani-blue">7</h3>
+                    <p class="text-xs text-gray-500 mt-2">Prossimi 7 giorni</p>
+                </div>
+                <div class="bg-white rounded shadow-sm border border-busani-gray p-6">
+                    <p class="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Documenti in Sospeso</p>
+                    <h3 class="font-heading font-semibold text-3xl text-busani-blue">12</h3>
+                    <p class="text-xs text-orange-500 mt-2 font-medium">Richiedono attenzione</p>
+                </div>
+            </div>
+
+            <!-- Recent Activity Table -->
+            <div class="bg-white rounded shadow-sm border border-busani-gray">
+                <div class="px-6 py-4 border-b border-busani-gray flex justify-between items-center">
+                    <h2 class="font-heading font-semibold text-lg text-busani-blue">Ultime Pratiche Inserite</h2>
+                    <a href="#" class="text-sm font-medium text-busani-blue hover:underline">Vedi tutte</a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-busani-light border-b border-busani-gray text-xs uppercase tracking-wider text-gray-500 font-medium">
+                                <th class="px-6 py-3">ID Pratica</th>
+                                <th class="px-6 py-3">Cliente</th>
+                                <th class="px-6 py-3">Tipologia</th>
+                                <th class="px-6 py-3">Data Stipula</th>
+                                <th class="px-6 py-3">Stato</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b border-busani-gray hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 font-medium text-busani-blue">PR-2024-089</td>
+                                <td class="px-6 py-4">Bianchi S.r.l.</td>
+                                <td class="px-6 py-4">Mutuo Ipotecario</td>
+                                <td class="px-6 py-4">12/07/2026</td>
+                                <td class="px-6 py-4"><span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded border border-green-200 font-medium">Approvata</span></td>
+                            </tr>
+                            <tr class="border-b border-busani-gray hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 font-medium text-busani-blue">PR-2024-088</td>
+                                <td class="px-6 py-4">Giulia Verdi</td>
+                                <td class="px-6 py-4">Surroga</td>
+                                <td class="px-6 py-4">15/07/2026</td>
+                                <td class="px-6 py-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-200 font-medium">In lavorazione</span></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 font-medium text-busani-blue">PR-2024-087</td>
+                                <td class="px-6 py-4">Marco Neri</td>
+                                <td class="px-6 py-4">Mutuo Fondiario</td>
+                                <td class="px-6 py-4">Da definire</td>
+                                <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded border border-gray-200 font-medium">Documenti mancanti</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

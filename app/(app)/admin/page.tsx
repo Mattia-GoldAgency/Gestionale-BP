@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/roles";
-import { AppHeader } from "@/components/app-header";
+
 import { UsersManager } from "./users-manager";
 import { listaUtenti, salvaImpostazioni, ultimiAudit } from "./actions";
 
@@ -39,8 +39,7 @@ export default async function AdminPage() {
 
   return (
     <>
-      <AppHeader email={user.email} isAdmin />
-      <main className="mx-auto w-full max-w-4xl px-6 py-8 flex flex-col gap-8">
+      <main className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl">Amministrazione</h1>
           <Link href="/dashboard" className="text-sm" style={{ color: "var(--muted)" }}>

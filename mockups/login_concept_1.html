@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Concept 1 - Busani & Partners</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        busani: {
+                            blue: '#2C4457',
+                            gray: '#D9DBDC',
+                            light: '#F5F6F6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+                        heading: ['Raleway', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-busani-blue min-h-screen flex items-center justify-center font-sans antialiased">
+    <div class="bg-white w-full max-w-md rounded-lg shadow-2xl p-10 mx-4">
+        <div class="text-center mb-10">
+            <!-- Simulated Logo -->
+            <div class="inline-flex flex-col items-start border-l-4 border-busani-blue pl-4 mb-6">
+                <span class="font-heading font-light text-4xl text-busani-blue tracking-widest leading-none">BU</span>
+                <span class="font-heading font-light text-4xl text-busani-blue tracking-widest leading-none">SA</span>
+                <span class="font-heading font-light text-4xl text-busani-blue tracking-widest leading-none">NI</span>
+                <span class="font-heading font-semibold text-[0.6rem] text-busani-gray tracking-widest mt-2 uppercase">& Partners</span>
+            </div>
+            <h1 class="font-heading font-semibold text-2xl text-busani-blue">Accesso Area Riservata</h1>
+            <p class="text-sm text-gray-500 mt-2">Inserisci le tue credenziali per continuare</p>
+        </div>
+        
+        <form>
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-busani-blue mb-1" for="email">Email</label>
+                <input type="email" id="email" class="w-full px-4 py-3 rounded border border-busani-gray focus:outline-none focus:border-busani-blue focus:ring-1 focus:ring-busani-blue transition-colors bg-busani-light" placeholder="nome.cognome@notaio-busani.it">
+            </div>
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-sm font-medium text-busani-blue" for="password">Password</label>
+                    <a href="#" class="text-xs text-busani-blue hover:underline">Password dimenticata?</a>
+                </div>
+                <input type="password" id="password" class="w-full px-4 py-3 rounded border border-busani-gray focus:outline-none focus:border-busani-blue focus:ring-1 focus:ring-busani-blue transition-colors bg-busani-light" placeholder="••••••••">
+            </div>
+            <button type="button" class="w-full bg-busani-blue text-white font-heading font-semibold py-3 px-4 rounded hover:bg-opacity-90 transition-all duration-300">
+                Accedi
+            </button>
+        </form>
+    </div>
+</body>
+</html>

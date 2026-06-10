@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/app-header";
+
 import { SemaforoBadge } from "@/components/semaforo";
 import { generaPratica } from "./actions";
 import { DeletePraticaButton } from "./delete-button";
@@ -33,8 +33,7 @@ export default async function PraticaPage({
 
   return (
     <>
-      <AppHeader email={user?.email} />
-      <main className="mx-auto w-full max-w-2xl px-6 py-8 flex flex-col gap-6">
+      <main className="max-w-2xl mx-auto space-y-6">
         <Link href="/dashboard" className="text-sm" style={{ color: "var(--muted)" }}>
           ← Torna alle pratiche
         </Link>
