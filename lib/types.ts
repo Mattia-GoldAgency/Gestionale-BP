@@ -20,6 +20,10 @@ export interface Pratica {
   dati_forniti: Record<string, string> | null;
   atto_path: string | null;
   nome_file_atto: string | null;
+  // Relazione Notarile Definitiva (RND): secondo documento, opzionale. Null per le
+  // pratiche generate prima dell'introduzione della funzione (nessuna regressione).
+  relazione_path: string | null;
+  nome_file_relazione: string | null;
   coverage: number | null;
   report: Record<string, unknown> | null;
   created_at: string;

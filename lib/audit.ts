@@ -7,6 +7,7 @@ export type AzioneAudit =
   | "upload_pratica"
   | "genera_atto"
   | "download_atto"
+  | "download_relazione"
   | "elimina_pratica"
   | "retention_purge"
   | "crea_utente"

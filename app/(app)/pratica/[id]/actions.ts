@@ -119,11 +119,34 @@ async function eseguiGenerazione(
     .eq("id", pratica.id);
   if (updErr) return { error: `Aggiornamento pratica fallito: ${updErr.message}` };
 
+  // Relazione Notarile Definitiva (RND): secondo file generato insieme all'atto.
+  // Best-effort: l'atto è già salvato e registrato sopra, quindi un errore qui non
+  // deve far fallire la generazione (il pulsante RND semplicemente non comparirà).
+  if (gen.relazioneBase64 && gen.nomeFileRelazione) {
+    const relBytes = Buffer.from(gen.relazioneBase64, "base64");
+    const relPath = `${pratica.user_id}/${pratica.id}/${gen.nomeFileRelazione}`;
+    const upRel = await supabase.storage.from(BUCKET_ATTI).upload(relPath, relBytes, {
+      contentType: mimePerFile(gen.nomeFileRelazione),
+      upsert: true,
+    });
+    if (!upRel.error) {
+      await supabase
+        .from("pratiche")
+        .update({ relazione_path: relPath, nome_file_relazione: gen.nomeFileRelazione })
+        .eq("id", pratica.id);
+    }
+  }
+
   await logAudit({
     azione: "genera_atto",
     userId: pratica.user_id,
     praticaId: pratica.id,
-    dettagli: { notaio: pratica.notaio, semaforo: gen.semaforo, nomeFile: gen.nomeFile },
+    dettagli: {
+      notaio: pratica.notaio,
+      semaforo: gen.semaforo,
+      nomeFile: gen.nomeFile,
+      relazione: Boolean(gen.relazioneBase64),
+    },
   });
 
   return {};
@@ -155,8 +178,11 @@ export async function eliminaPratica(praticaId: string): Promise<void> {
   );
   if (docFiles.length)
     await admin.storage.from(BUCKET_DOCUMENTI).remove(docFiles);
-  if (pratica.atto_path)
-    await admin.storage.from(BUCKET_ATTI).remove([pratica.atto_path]);
+  const attoFiles = [pratica.atto_path, pratica.relazione_path].filter(
+    (p): p is string => Boolean(p)
+  );
+  if (attoFiles.length)
+    await admin.storage.from(BUCKET_ATTI).remove(attoFiles);
 
   await admin.from("pratiche").delete().eq("id", praticaId);
 

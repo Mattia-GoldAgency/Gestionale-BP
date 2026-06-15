@@ -39,6 +39,10 @@ export interface RisultatoGenerazione {
   coverage: number; // 0-100
   semaforo: Semaforo;
   reportValidazione: Record<string, unknown>;
+  // Relazione Notarile Definitiva (RND): secondo documento generato insieme
+  // all'atto. Opzionali: assenti (undefined) se la RND non viene prodotta.
+  relazioneBase64?: string | null;
+  nomeFileRelazione?: string | null;
 }
 
 export interface InputEstrazione {
