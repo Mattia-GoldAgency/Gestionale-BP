@@ -12,7 +12,7 @@ export function Brand({ subtitle }: { subtitle?: string }) {
         className="h-auto w-[150px]"
       />
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Atti di Mutuo</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Gestionale B&amp;P</h1>
         {subtitle ? (
           <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
             {subtitle}

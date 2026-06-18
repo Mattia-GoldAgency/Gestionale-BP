@@ -10,9 +10,9 @@ const raleway = Raleway({
 });
 
 export const metadata: Metadata = {
-  title: "Atti di Mutuo — Studio Busani & Partners",
+  title: "Gestionale Busani & Partners",
   description:
-    "Generazione assistita degli atti di mutuo a partire da RNP e minuta bancaria.",
+    "Gestionale dello Studio Notarile Busani & Partners. Include la generazione assistita degli atti di mutuo a partire da RNP e minuta bancaria.",
 };
 
 export default function RootLayout({

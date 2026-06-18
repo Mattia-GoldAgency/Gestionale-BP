@@ -1,77 +1,41 @@
 import Link from "next/link";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
-import { SemaforoBadge } from "@/components/semaforo";
-import { UploadForm } from "./upload-form";
-import type { Pratica } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const STATO_LABEL: Record<string, string> = {
-  in_estrazione: "In elaborazione",
-  dati_mancanti: "Dati da completare",
-  completata: "Completata",
-  errore: "Errore",
-};
-
-export default async function DashboardPage() {
-  if (!supabaseConfigured()) {
-    return (
-      <ConfigMancante />
-    );
+export default async function DashboardHubPage() {
+  if (supabaseConfigured()) {
+    const supabase = await createClient();
+    await supabase.auth.getUser();
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: pratiche } = await supabase
-    .from("pratiche")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(10);
-
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Nuova Pratica (Upload Form) */}
-      <section className="bg-white rounded shadow-sm border border-[var(--brand-gray)] p-8">
-        <h2 className="font-title font-semibold text-xl text-[var(--brand-blue)] mb-2">Nuova pratica</h2>
-        <p className="text-sm text-gray-500 mb-6">
-          Carica la RNP e la minuta della banca, indica il notaio e la data di stipula.
-        </p>
-        <UploadForm />
-      </section>
+    <div className="max-w-6xl mx-auto space-y-8">
+      <div>
+        <h2 className="font-title font-semibold text-3xl text-[var(--brand-blue)] mb-2">Benvenuto nell'Area di Lavoro</h2>
+        <p className="text-gray-500">Seleziona la sezione a cui vuoi accedere.</p>
+      </div>
 
-      {/* Pratiche Recenti (Storico) */}
-      <section>
-        <h2 className="font-title font-semibold text-xl text-[var(--brand-blue)] mb-4">Storico</h2>
-        {pratiche && pratiche.length > 0 ? (
-          <ul className="flex flex-col gap-3">
-            {(pratiche as Pratica[]).map((p) => (
-              <li key={p.id}>
-                <Link
-                  href={`/pratica/${p.id}`}
-                  className="bg-white rounded border border-[var(--brand-gray)] px-6 py-4 flex items-center justify-between hover:border-[var(--brand-blue)] hover:-translate-y-0.5 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium text-[var(--brand-blue)]">
-                      {p.nome_banca && p.nome_cliente ? `${p.nome_banca} - ${p.nome_cliente}` : (p.nome_banca || p.nome_cliente || p.notaio)}
-                    </span>
-                    <span className="text-xs text-gray-500 mt-1">
-                      {p.notaio} · Stipula {p.data_stipula} · {STATO_LABEL[p.stato] ?? p.stato}
-                    </span>
-                  </div>
-                  <SemaforoBadge value={p.semaforo} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-gray-500">
-            Nessuna pratica ancora. Caricane una qui sopra.
-          </p>
-        )}
-      </section>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Card Mutui */}
+        <Link href="/mutui" className="group bg-white rounded-lg border border-[var(--brand-gray)] p-8 hover:border-[var(--brand-blue)] hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-full bg-[var(--brand-light)] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 text-[var(--brand-blue)]">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+          </div>
+          <h3 className="font-title font-semibold text-xl text-[var(--brand-blue)] mb-2">Gestione Mutui</h3>
+          <p className="text-sm text-gray-500">Carica RNP e minute per la generazione automatica degli atti di mutuo.</p>
+        </Link>
+
+        {/* Card Traduzioni */}
+        <Link href="/traduzioni" className="group bg-white rounded-lg border border-[var(--brand-gray)] p-8 hover:border-[var(--brand-blue)] hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-full bg-[var(--brand-light)] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 text-[var(--brand-blue)]">
+             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+          </div>
+          <h3 className="font-title font-semibold text-xl text-[var(--brand-blue)] mb-2">Traduzioni</h3>
+          <p className="text-sm text-gray-500">Servizio di traduzione documenti.</p>
+        </Link>
+
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
--- Schema iniziale per "Atti di Mutuo" — Studio Busani & Partners.
+-- Schema iniziale per "Gestionale Busani & Partners" — Studio Busani & Partners.
 -- Esegui nello SQL Editor di Supabase (o via CLI: supabase db push).
 
 -- =========================================================================
