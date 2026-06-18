@@ -25,7 +25,7 @@ export function AppHeader({
             className="h-7 w-auto"
           />
           <span className="font-title font-semibold tracking-tight">
-            Atti di Mutuo · Busani &amp; Partners
+            Gestionale Busani &amp; Partners
           </span>
         </Link>
         <div className="flex items-center gap-4">

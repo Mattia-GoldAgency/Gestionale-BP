@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Informativa Privacy — Atti di Mutuo",
+  title: "Informativa Privacy — Gestionale Busani & Partners",
 };
 
 // NB: testo base. Da far validare al DPO/referente privacy dello Studio prima
@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       </Link>
       <h1 className="text-2xl mt-4 mb-2">Informativa sul trattamento dei dati</h1>
       <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
-        Studio Notarile Busani &amp; Partners — applicazione interna “Atti di Mutuo”.
+        Studio Notarile Busani &amp; Partners — applicazione interna “Gestionale Busani &amp; Partners”.
       </p>
 
       <div className="card p-6 flex flex-col gap-4 text-sm leading-relaxed">

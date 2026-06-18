@@ -1,12 +1,13 @@
-# Atti di Mutuo — Frontend Web (Studio Notarile Busani & Partners)
+# Gestionale Busani & Partners — Frontend Web
 
-Web app per la generazione assistita degli atti di mutuo da **RNP + minuta banca**.
+Gestionale dello Studio Notarile Busani & Partners. La prima area operativa è la
+generazione assistita degli atti di mutuo da **RNP + minuta banca**.
 Repo **separato** dal motore Python `atto_core` (che sta nel progetto OneDrive
 `MutuiB&P`). Questo è il layer utente: login, upload, raccolta dati mancanti,
 download `.docx`, area admin.
 
-- **Live**: https://mutui-web.vercel.app
-- **Repo**: github.com/Mattia-GoldAgency/MutuiB-P (auto-deploy su push a `main`)
+- **Live**: https://gestionale-bp-web.vercel.app
+- **Repo**: github.com/Mattia-GoldAgency/Gestionale-BP (auto-deploy su push a `main`)
 - **Path locale**: `C:\Users\pc42\mutui-web` (fuori da OneDrive e dal path con `&`)
 
 ## Stack
@@ -39,10 +40,10 @@ supabase/migrations/  0001 pratiche+storage · 0002 app_settings · 0003 audit_l
 ```
 
 ## Servizi (riferimenti)
-- **Supabase**: progetto `mutui-bp`, ref `npcigqtbemtboxbbnovp`, region eu-west-1.
+- **Supabase**: progetto `gestionale-bp` (display name; ref invariato `npcigqtbemtboxbbnovp`), region eu-west-1.
   Tabelle: `pratiche` (RLS per-utente), `app_settings`, `audit_log` (solo service_role).
   Bucket privati: `documenti`, `atti`.
-- **Vercel**: progetto `mutui-web`, team `mattia-goldagencys-projects`. Env: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET. Cron giornaliero 03:00 UTC.
+- **Vercel**: progetto `gestionale-bp-web`, team `mattia-goldagencys-projects`. Env: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET. Cron giornaliero 03:00 UTC.
 - **Utenti**: 1 admin (mattia.bottoni@notaio-busani.it) + 15 collaboratori @notaio-busani.it, tutti con cambio password al 1° accesso.
 
 ## Contratto col backend Python

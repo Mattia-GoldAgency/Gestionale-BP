@@ -1,6 +1,7 @@
-# Atti di Mutuo — Web App (Studio Notarile Busani & Partners)
+# Gestionale Busani & Partners — Web App
 
-Interfaccia web per la generazione assistita degli atti di mutuo a partire da
+Gestionale dello Studio Notarile Busani & Partners. La prima area operativa è la
+generazione assistita degli **atti di mutuo** a partire da
 **RNP** e **minuta della banca**. Frontend Next.js (App Router) + Supabase
 (auth, DB, storage), deploy su Vercel. Il motore di generazione vero e proprio
 (`atto_core`, Python on-premise) è collegato via HTTP attraverso un contratto

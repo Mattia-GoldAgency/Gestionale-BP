@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/roles";
 import { signOut } from "@/app/login/actions";
 
@@ -9,10 +9,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+
+  if (supabaseConfigured()) {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } else {
+    // Mock user for localhost UI preview
+    user = { email: "mario.rossi@busani.it" } as any;
+  }
   
   const isUserAdmin = isAdmin(user);
   
@@ -21,7 +27,7 @@ export default async function DashboardLayout({
   const initials = emailStr
     .split("@")[0]
     .split(".")
-    .map((part) => part[0]?.toUpperCase() || "")
+    .map((part: string) => part[0]?.toUpperCase() || "")
     .join("")
     .slice(0, 2);
   const displayInitials = initials || "U";
@@ -45,8 +51,8 @@ export default async function DashboardLayout({
           <ul className="space-y-1">
             <li>
               <Link href="/dashboard" className="flex items-center px-6 py-3 hover:bg-[#345168] hover:text-white transition-colors text-[var(--brand-gray)]">
-                <svg className="w-5 h-5 mr-3 opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                Gestione Pratiche
+                <svg className="w-5 h-5 mr-3 opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                Dashboard
               </Link>
             </li>
             <li>

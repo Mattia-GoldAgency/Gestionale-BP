@@ -23,7 +23,7 @@ export default function LoginPage() {
             nell&apos;era digitale.
           </h2>
           <p className="text-[var(--brand-gray)] mt-4 max-w-md">
-            Piattaforma riservata per la gestione delle pratiche di mutuo e atti notarili dello studio Busani &amp; Partners.
+            Piattaforma riservata per la gestione delle pratiche e degli atti notarili dello studio Busani &amp; Partners.
           </p>
         </div>
         {/* Decorative geometric shape */}
