@@ -25,6 +25,15 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
   const [email, setEmail] = useState("");
   const [ruolo, setRuolo] = useState<Ruolo>("collaboratore");
 
+  const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const filteredUtenti = utenti.filter((u) => u.email.toLowerCase().includes(search.toLowerCase()));
+  const sortedUtenti = [...filteredUtenti].sort((a, b) => {
+    const cmp = a.email.localeCompare(b.email);
+    return sortOrder === "asc" ? cmp : -cmp;
+  });
+
   function refresh() {
     startTransition(() => router.refresh());
   }
@@ -158,6 +167,23 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
       {error ? <p className="field-error">{error}</p> : null}
 
       <div className="card overflow-hidden">
+        <div className="p-4 flex flex-wrap gap-4 items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
+          <input
+            type="search"
+            className="input max-w-sm"
+            placeholder="Cerca utente per email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-ghost text-sm"
+            style={{ padding: "0.4rem 0.8rem" }}
+            onClick={() => setSortOrder(o => o === "asc" ? "desc" : "asc")}
+          >
+            Ordina: {sortOrder === "asc" ? "A-Z ↓" : "Z-A ↑"}
+          </button>
+        </div>
         <table className="table">
           <thead>
             <tr>
@@ -169,7 +195,7 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
             </tr>
           </thead>
           <tbody>
-            {utenti.map((u) => (
+            {sortedUtenti.map((u) => (
               <tr key={u.id}>
                 <td>{u.email}</td>
                 <td>
