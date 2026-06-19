@@ -18,7 +18,7 @@ export default function LoginPage() {
           />
         </div>
         <div className="relative z-10">
-          <h2 className="font-title text-4xl text-white font-light leading-tight">
+          <h2 className="font-title text-4xl !text-white font-light leading-tight">
             L&apos;eccellenza notarile<br />
             nell&apos;era digitale.
           </h2>

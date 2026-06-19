@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/roles";
 import { signOut } from "@/app/login/actions";
+import { PageTitle } from "./page-title";
 
 export default async function DashboardLayout({
   children,
@@ -90,7 +91,7 @@ export default async function DashboardLayout({
         {/* Header */}
         <header className="bg-white shadow-sm z-10 border-b border-[var(--brand-gray)] shrink-0">
           <div className="flex items-center justify-between px-8 py-4">
-            <h1 className="font-title font-semibold text-xl text-[var(--brand-blue)]">Area di Lavoro</h1>
+            <PageTitle />
             <div className="flex items-center space-x-4">
               <form action={signOut}>
                 <button type="submit" className="px-4 py-1.5 text-sm font-semibold text-[var(--brand-blue)] border border-[var(--brand-gray)] rounded hover:border-[var(--brand-blue)] hover:bg-[var(--brand-blue)] hover:text-white transition-all shadow-sm">
