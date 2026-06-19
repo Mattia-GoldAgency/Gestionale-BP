@@ -139,12 +139,27 @@ async function eseguiGenerazione(
         ...gen.reportValidazione,
         sistematizzazione_motivo: gen.sistematizzazioneMotivo ?? null,
       },
+    })
+    .eq("id", pratica.id);
+  if (updErr) return { error: `Aggiornamento pratica fallito: ${updErr.message}` };
+
+  // Colonne sistematizzazione: richiedono la migration 0006. Aggiornamento
+  // BEST-EFFORT separato così, se la migration non è ancora applicata in
+  // produzione, la generazione NON si rompe (le colonne risultano mancanti ma
+  // l'atto è già salvato sopra). Una volta applicata la 0006, funziona da sé.
+  const { error: sistErr } = await supabase
+    .from("pratiche")
+    .update({
       sistematizzazione_applicata: gen.sistematizzazioneApplicata ?? false,
       sistematizzazione_integrita_ok: gen.sistematizzazioneIntegritaOk ?? true,
       sistematizzazione_diff_path: diffPath,
     })
     .eq("id", pratica.id);
-  if (updErr) return { error: `Aggiornamento pratica fallito: ${updErr.message}` };
+  if (sistErr) {
+    console.warn(
+      `[sistematizzazione] colonne non aggiornate (migration 0006 applicata?): ${sistErr.message}`
+    );
+  }
 
   // Relazione Notarile Definitiva (RND): secondo file generato insieme all'atto.
   // Best-effort: l'atto è già salvato e registrato sopra, quindi un errore qui non
