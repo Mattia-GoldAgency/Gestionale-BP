@@ -16,7 +16,7 @@ export default async function TraduzioniPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h2 className="font-title font-semibold text-2xl text-[var(--brand-blue)] mb-1">
-          Traduzione documenti
+          Traduzioni e Trascrizioni testo
         </h2>
         <p className="text-sm text-gray-500">
           Carica qualsiasi documento — anche scansioni e immagini — scegli le lingue e

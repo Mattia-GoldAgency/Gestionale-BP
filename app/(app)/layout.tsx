@@ -4,6 +4,7 @@ import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/roles";
 import { signOut } from "@/app/login/actions";
 import { PageTitle } from "./page-title";
+import { BackButton } from "./back-button";
 
 export default async function DashboardLayout({
   children,
@@ -104,6 +105,7 @@ export default async function DashboardLayout({
 
         {/* Scrollable Page Content */}
         <div className="flex-1 overflow-auto p-8 relative">
+          <BackButton />
           {children}
         </div>
       </main>

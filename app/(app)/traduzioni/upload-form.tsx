@@ -21,7 +21,7 @@ const FORMATI = [
   { value: "solo_trascrizione", label: "Solo trascrizione", hint: "l'originale trascritto, senza tradurre" },
   { value: "solo_traduzione", label: "Solo traduzione", hint: "solo il testo nella lingua di arrivo" },
   { value: "originale_traduzione", label: "Trascrizione + traduzione", hint: "originale e traduzione nello stesso file" },
-  { value: "bilingue", label: "Formato atto - due colonne, originale e traduzione, formattato come atto", hint: "tabella a due colonne (Tahoma 9), come l'atto" },
+  { value: "bilingue", label: "Formato atto tabellare", hint: "tabella a due colonne come da atto" },
   { value: "mirror", label: "Testo a fronte", hint: "ogni paragrafo seguito dalla traduzione" },
 ];
 
