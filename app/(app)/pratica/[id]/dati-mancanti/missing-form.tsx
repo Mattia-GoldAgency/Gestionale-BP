@@ -40,13 +40,32 @@ export function MissingForm({
             {campo.etichetta}
             {campo.obbligatorio ? " *" : ""}
           </label>
-          <input
-            id={campo.chiave}
-            name={campo.chiave}
-            required={campo.obbligatorio}
-            className="input"
-            {...inputProps(campo.tipo)}
-          />
+          {campo.tipo === "scelta" ? (
+            <select
+              id={campo.chiave}
+              name={campo.chiave}
+              required={campo.obbligatorio}
+              defaultValue=""
+              className="input"
+            >
+              <option value="" disabled>
+                — seleziona —
+              </option>
+              {(campo.opzioni ?? []).map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id={campo.chiave}
+              name={campo.chiave}
+              required={campo.obbligatorio}
+              className="input"
+              {...inputProps(campo.tipo)}
+            />
+          )}
           {campo.hint ? (
             <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
               {campo.hint}
@@ -54,6 +73,15 @@ export function MissingForm({
           ) : null}
         </div>
       ))}
+
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="sistematizzazione" defaultChecked className="mt-1" />
+        <span>
+          Allinea l&apos;atto al modello della banca (sistematizzazione). I dati
+          restano blindati; potrai vedere le differenze e ripristinare il
+          deterministico.
+        </span>
+      </label>
 
       {state.error ? <p className="field-error">{state.error}</p> : null}
 

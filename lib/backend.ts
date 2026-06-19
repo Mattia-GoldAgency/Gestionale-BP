@@ -12,7 +12,8 @@ export type TipoCampo =
   | "data"
   | "numero"
   | "testo"
-  | "durata";
+  | "durata"
+  | "scelta"; // es. regime patrimoniale (sezioni "a cura del notaio")
 
 export interface CampoMancante {
   chiave: string; // es. "tasso_interesse"
@@ -20,6 +21,7 @@ export interface CampoMancante {
   tipo: TipoCampo;
   obbligatorio: boolean;
   hint?: string; // spiegazione del perché manca
+  opzioni?: string[]; // valori selezionabili quando tipo === "scelta"
 }
 
 export type Semaforo = "verde" | "giallo" | "rosso";
@@ -43,6 +45,19 @@ export interface RisultatoGenerazione {
   // all'atto. Opzionali: assenti (undefined) se la RND non viene prodotta.
   relazioneBase64?: string | null;
   nomeFileRelazione?: string | null;
+  // Sistematizzazione verso il golden della banca (Feature B). Opzionali con
+  // default: contratto retro-compatibile.
+  // - applicabile: la proposta supererebbe il gate (sarebbe sicura);
+  // - applicata: il file in docBase64 È quello conformato dall'LLM;
+  // - integritaOk/valoriAlterati: esito del gate sui dati;
+  // - diff: confronto deterministico → conformato (da salvare nel bucket, non in DB);
+  // - motivo: perché è stata scartata, se applicata=false.
+  sistematizzazioneApplicabile?: boolean;
+  sistematizzazioneApplicata?: boolean;
+  sistematizzazioneIntegritaOk?: boolean;
+  sistematizzazioneValoriAlterati?: string[];
+  sistematizzazioneMotivo?: string | null;
+  sistematizzazioneDiff?: string | null;
 }
 
 export interface InputEstrazione {
@@ -55,6 +70,8 @@ export interface InputEstrazione {
 
 export interface InputGenerazione extends InputEstrazione {
   datiForniti: Record<string, string>;
+  // Se true, attiva la sistematizzazione verso il golden della banca.
+  sistematizzazione?: boolean;
 }
 
 function backendUrl(): string | null {
