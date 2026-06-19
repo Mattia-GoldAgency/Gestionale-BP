@@ -35,6 +35,11 @@ export interface Pratica {
   // pratiche generate prima dell'introduzione della funzione (nessuna regressione).
   relazione_path: string | null;
   nome_file_relazione: string | null;
+  // Sistematizzazione verso il golden della banca (Feature B). Null per le pratiche
+  // generate prima della funzione (nessuna regressione).
+  sistematizzazione_applicata: boolean | null;
+  sistematizzazione_integrita_ok: boolean | null;
+  sistematizzazione_diff_path: string | null;
   coverage: number | null;
   report: Record<string, unknown> | null;
   created_at: string;
