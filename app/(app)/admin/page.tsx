@@ -30,12 +30,6 @@ export default async function AdminPage() {
   return (
     <>
       <main className="max-w-4xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl">Amministrazione</h1>
-          <Link href="/dashboard" className="text-sm" style={{ color: "var(--muted)" }}>
-            ← Dashboard
-          </Link>
-        </div>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-lg">Utenti ({utenti.length})</h2>

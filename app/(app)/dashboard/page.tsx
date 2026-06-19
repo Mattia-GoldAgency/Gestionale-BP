@@ -12,7 +12,6 @@ export default async function DashboardHubPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div>
-        <h2 className="font-title font-semibold text-3xl text-[var(--brand-blue)] mb-2">Benvenuto nell'Area di Lavoro</h2>
         <p className="text-gray-500">Seleziona la sezione a cui vuoi accedere.</p>
       </div>
 
