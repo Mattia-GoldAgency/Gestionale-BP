@@ -18,11 +18,14 @@ const LINGUE = [
 ];
 
 const FORMATI = [
+  { value: "solo_trascrizione", label: "Solo trascrizione", hint: "l'originale trascritto, senza tradurre" },
   { value: "solo_traduzione", label: "Solo traduzione", hint: "solo il testo nella lingua di arrivo" },
-  { value: "originale_traduzione", label: "Originale + traduzione", hint: "entrambi nello stesso file" },
+  { value: "originale_traduzione", label: "Trascrizione + traduzione", hint: "originale e traduzione nello stesso file" },
   { value: "bilingue", label: "Bilingue affiancato", hint: "due colonne, originale | traduzione" },
   { value: "mirror", label: "Testo a fronte", hint: "ogni paragrafo seguito dalla traduzione" },
 ];
+
+const DEFAULT_FORMATO = "originale_traduzione";
 
 const ACCEPT = ".pdf,.doc,.docx,.rtf,.odt,.jpg,.jpeg,.png,.tif,.tiff,.gif,.webp,.bmp";
 
@@ -33,6 +36,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export function TraduzioniForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [formato, setFormato] = useState(DEFAULT_FORMATO);
   const [fase, setFase] = useState<Fase>("idle");
   const [progresso, setProgresso] = useState(0);
   const [faseTesto, setFaseTesto] = useState("");
@@ -82,6 +86,7 @@ export function TraduzioniForm() {
   function nuova() {
     formRef.current?.reset();
     setFileName(null);
+    setFormato(DEFAULT_FORMATO);
     setFase("idle");
     setProgresso(0);
     setErrore("");
@@ -169,25 +174,35 @@ export function TraduzioniForm() {
             <label className="label" htmlFor="lingua_destino">
               Traduci verso
             </label>
-            <select id="lingua_destino" name="lingua_destino" className="select" defaultValue="it" disabled={lavorando}>
+            <select
+              id="lingua_destino"
+              name="lingua_destino"
+              className="select"
+              defaultValue="it"
+              disabled={lavorando || formato === "solo_trascrizione"}
+            >
               {LINGUE.map((l) => (
                 <option key={l.code} value={l.code}>{l.nome}</option>
               ))}
             </select>
+            {formato === "solo_trascrizione" ? (
+              <p className="text-xs mt-1 text-gray-400">Non serve per la sola trascrizione.</p>
+            ) : null}
           </div>
         </div>
 
         <div>
           <span className="label">Formato risultato</span>
           <div className="flex flex-col gap-2 mt-1">
-            {FORMATI.map((f, i) => (
+            {FORMATI.map((f) => (
               <label key={f.value} className="flex items-start gap-2 text-sm cursor-pointer">
                 <input
                   type="radio"
                   name="formato"
                   value={f.value}
-                  defaultChecked={i === 1}
+                  defaultChecked={f.value === DEFAULT_FORMATO}
                   disabled={lavorando}
+                  onChange={() => setFormato(f.value)}
                   className="mt-1"
                 />
                 <span>

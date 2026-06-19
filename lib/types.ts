@@ -11,6 +11,7 @@ export type StatoPratica =
 export type TipoPratica = "mutuo" | "traduzione";
 
 export type FormatoTraduzione =
+  | "solo_trascrizione"
   | "solo_traduzione"
   | "originale_traduzione"
   | "bilingue"

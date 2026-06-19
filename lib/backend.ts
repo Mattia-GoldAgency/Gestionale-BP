@@ -120,6 +120,7 @@ async function getJson<T>(path: string): Promise<T> {
 // Modulo Traduzioni — job asincrono: avvia (POST) + polling stato (GET).
 // ---------------------------------------------------------------------------
 export type FormatoTraduzione =
+  | "solo_trascrizione"
   | "solo_traduzione"
   | "originale_traduzione"
   | "bilingue"

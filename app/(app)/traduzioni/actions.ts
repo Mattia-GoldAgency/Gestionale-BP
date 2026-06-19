@@ -13,6 +13,7 @@ import { logAudit, ipCorrente } from "@/lib/audit";
 
 const MAX_FILE = 50 * 1024 * 1024; // 50 MB (le scansioni possono essere grandi)
 const FORMATI: FormatoTraduzione[] = [
+  "solo_trascrizione",
   "solo_traduzione",
   "originale_traduzione",
   "bilingue",
