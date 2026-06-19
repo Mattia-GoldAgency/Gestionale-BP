@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
     .from("pratiche")
     .select("*")
     .lt("created_at", cutoff)
-    .or("rnp_path.not.is.null,minuta_path.not.is.null,atto_path.not.is.null")
+    .or(
+      "rnp_path.not.is.null,minuta_path.not.is.null,atto_path.not.is.null,input_path.not.is.null"
+    )
     .returns<Pratica[]>();
 
   if (error) {
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
 
   let purged = 0;
   for (const p of pratiche ?? []) {
-    const docFiles = [p.rnp_path, p.minuta_path].filter(
+    const docFiles = [p.rnp_path, p.minuta_path, p.input_path].filter(
       (x): x is string => Boolean(x)
     );
     if (docFiles.length) await admin.storage.from(BUCKET_DOCUMENTI).remove(docFiles);
@@ -55,7 +57,7 @@ export async function GET(req: NextRequest) {
 
     await admin
       .from("pratiche")
-      .update({ rnp_path: null, minuta_path: null, atto_path: null })
+      .update({ rnp_path: null, minuta_path: null, atto_path: null, input_path: null })
       .eq("id", p.id);
     purged++;
   }

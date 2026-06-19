@@ -8,6 +8,8 @@ export type AzioneAudit =
   | "genera_atto"
   | "download_atto"
   | "download_relazione"
+  | "upload_traduzione"
+  | "download_traduzione_pronta"
   | "elimina_pratica"
   | "retention_purge"
   | "crea_utente"

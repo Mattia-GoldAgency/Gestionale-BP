@@ -6,9 +6,9 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   experimental: {
     serverActions: {
-      // RNP e minute possono pesare alcuni MB: alziamo il limite del body
-      // delle Server Action (default 1MB) per consentirne l'upload.
-      bodySizeLimit: "20mb",
+      // RNP/minute e i documenti da tradurre (incl. scansioni) possono pesare
+      // diversi MB: alziamo il limite del body delle Server Action (default 1MB).
+      bodySizeLimit: "50mb",
     },
   },
   images: {

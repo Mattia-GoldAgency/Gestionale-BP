@@ -6,6 +6,16 @@ export type StatoPratica =
   | "completata"
   | "errore";
 
+// Tipo di pratica: i mutui e (dal modulo Traduzioni) le traduzioni condividono la
+// stessa tabella e lo stesso storico.
+export type TipoPratica = "mutuo" | "traduzione";
+
+export type FormatoTraduzione =
+  | "solo_traduzione"
+  | "originale_traduzione"
+  | "bilingue"
+  | "mirror";
+
 export interface Pratica {
   id: string;
   user_id: string;
@@ -29,6 +39,25 @@ export interface Pratica {
   created_at: string;
   nome_banca: string | null;
   nome_cliente: string | null;
+  // Modulo Traduzioni (null/'mutuo' per le pratiche di mutuo: nessuna regressione).
+  tipo_pratica: TipoPratica;
+  lingua_origine: string | null;
+  lingua_destino: string | null;
+  formato_traduzione: FormatoTraduzione | null;
+  job_id: string | null;
+  input_path: string | null;
+  nome_file_input: string | null;
+}
+
+export interface VoceGlossario {
+  id: string;
+  user_id: string | null;
+  lingua_origine: string;
+  lingua_destino: string;
+  termine_origine: string;
+  termine_destino: string;
+  note: string | null;
+  created_at: string;
 }
 
 export const BUCKET_DOCUMENTI = "documenti";

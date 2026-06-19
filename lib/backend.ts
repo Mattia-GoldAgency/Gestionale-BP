@@ -101,6 +101,64 @@ export function backendConfigurato(): boolean {
   return backendUrl() !== null;
 }
 
+async function getJson<T>(path: string): Promise<T> {
+  const base = backendUrl()!;
+  const res = await fetch(`${base}${path}`, {
+    method: "GET",
+    headers: {
+      ...(process.env.BACKEND_API_KEY
+        ? { Authorization: `Bearer ${process.env.BACKEND_API_KEY}` }
+        : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Backend ${path} ha risposto ${res.status}`);
+  return (await res.json()) as T;
+}
+
+// ---------------------------------------------------------------------------
+// Modulo Traduzioni — job asincrono: avvia (POST) + polling stato (GET).
+// ---------------------------------------------------------------------------
+export type FormatoTraduzione =
+  | "solo_traduzione"
+  | "originale_traduzione"
+  | "bilingue"
+  | "mirror";
+
+export interface InputTraduzione {
+  praticaId: string;
+  fileUrl: string;
+  nomeFileOriginale: string;
+  linguaDestino: string;
+  linguaOrigine?: string | null; // null => auto-rileva
+  formato: FormatoTraduzione;
+  glossario: { origine: string; destino: string }[];
+  memoria: { hash_origine?: string; testo_origine?: string; testo_destino: string }[];
+}
+
+export interface StatoTraduzione {
+  jobId: string;
+  stato: "in_corso" | "completato" | "errore";
+  progresso: number;
+  fase?: string | null;
+  docBase64?: string | null;
+  nomeFile?: string | null;
+  linguaOrigineRilevata?: string | null;
+  report?: Record<string, unknown> | null;
+  memoriaNuova?: { hash_origine: string; testo_origine: string; testo_destino: string }[] | null;
+  errore?: string | null;
+}
+
+export async function avviaTraduzione(input: InputTraduzione): Promise<StatoTraduzione> {
+  if (!backendUrl()) return mockAvviaTraduzione(input);
+  return postJson<StatoTraduzione>("/api/traduci", input);
+}
+
+export async function statoTraduzione(jobId: string): Promise<StatoTraduzione> {
+  if (!backendUrl()) return mockStatoTraduzione(jobId);
+  return getJson<StatoTraduzione>(`/api/traduci/${jobId}`);
+}
+
 // ---------------------------------------------------------------------------
 // MOCK (solo quando BACKEND_URL non è impostato) — utile per testare la UI.
 // ---------------------------------------------------------------------------
@@ -150,5 +208,30 @@ async function mockGenerazione(
     coverage: 0,
     semaforo: "giallo",
     reportValidazione: { mock: true },
+  };
+}
+
+function mockAvviaTraduzione(input: InputTraduzione): StatoTraduzione {
+  return { jobId: `mock-${input.praticaId}`, stato: "in_corso", progresso: 0, fase: "In coda" };
+}
+
+async function mockStatoTraduzione(jobId: string): Promise<StatoTraduzione> {
+  // Senza backend, il job "completa" subito con un .docx segnaposto.
+  const righe = [
+    "TRADUZIONE (ANTEPRIMA MOCK)",
+    "",
+    "Documento di prova generato senza backend (BACKEND_URL non impostato).",
+    "Il motore reale produrra' il .docx tradotto nel formato scelto.",
+  ];
+  return {
+    jobId,
+    stato: "completato",
+    progresso: 100,
+    fase: "Completato",
+    docBase64: await buildDocxBase64(righe),
+    nomeFile: "traduzione_mock.docx",
+    linguaOrigineRilevata: "inglese",
+    report: { qualita: { semaforo: "giallo" }, mock: true },
+    memoriaNuova: [],
   };
 }
