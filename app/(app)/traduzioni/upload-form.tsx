@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { avviaTraduzione, pollTraduzione } from "./actions";
+import { useActionState, useState } from "react";
+import { traduci, type TraduciState } from "./actions";
 
 const LINGUE = [
   { code: "it", nome: "Italiano" },
@@ -21,7 +21,7 @@ const FORMATI = [
   { value: "solo_trascrizione", label: "Solo trascrizione", hint: "l'originale trascritto, senza tradurre" },
   { value: "solo_traduzione", label: "Solo traduzione", hint: "solo il testo nella lingua di arrivo" },
   { value: "originale_traduzione", label: "Trascrizione + traduzione", hint: "originale e traduzione nello stesso file" },
-  { value: "bilingue", label: "Bilingue affiancato", hint: "due colonne, originale | traduzione" },
+  { value: "bilingue", label: "Formato atto - due colonne, originale e traduzione, formattato come atto", hint: "tabella a due colonne (Tahoma 9), come l'atto" },
   { value: "mirror", label: "Testo a fronte", hint: "ogni paragrafo seguito dalla traduzione" },
 ];
 
@@ -29,92 +29,37 @@ const DEFAULT_FORMATO = "originale_traduzione";
 
 const ACCEPT = ".pdf,.doc,.docx,.rtf,.odt,.jpg,.jpeg,.png,.tif,.tiff,.gif,.webp,.bmp";
 
-type Fase = "idle" | "invio" | "elaborazione" | "fatto" | "errore";
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const initial: TraduciState = {};
 
 export function TraduzioniForm() {
-  const formRef = useRef<HTMLFormElement>(null);
+  const [state, formAction, pending] = useActionState(traduci, initial);
   const [fileName, setFileName] = useState<string | null>(null);
   const [formato, setFormato] = useState(DEFAULT_FORMATO);
-  const [fase, setFase] = useState<Fase>("idle");
-  const [progresso, setProgresso] = useState(0);
-  const [faseTesto, setFaseTesto] = useState("");
-  const [errore, setErrore] = useState("");
-  const [download, setDownload] = useState("");
-  const [semaforo, setSemaforo] = useState("");
 
-  const lavorando = fase === "invio" || fase === "elaborazione";
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErrore("");
-    setDownload("");
-    setFase("invio");
-    setFaseTesto("Caricamento del documento…");
-
-    const fd = new FormData(e.currentTarget);
-    const res = await avviaTraduzione({}, fd);
-    if (res.error || !res.praticaId || !res.jobId) {
-      setErrore(res.error ?? "Avvio non riuscito.");
-      setFase("errore");
-      return;
-    }
-
-    setFase("elaborazione");
-    for (let i = 0; i < 200; i++) {
-      await sleep(2000);
-      const p = await pollTraduzione(res.praticaId, res.jobId);
-      setProgresso(p.progresso ?? 0);
-      setFaseTesto(p.fase ?? "Elaborazione in corso…");
-      if (p.stato === "completato") {
-        setDownload(p.downloadUrl ?? "");
-        setSemaforo(p.semaforo ?? "");
-        setFase("fatto");
-        return;
-      }
-      if (p.stato === "errore") {
-        setErrore(p.errore ?? "Elaborazione fallita.");
-        setFase("errore");
-        return;
-      }
-    }
-    setErrore("Tempo scaduto: riprova o controlla lo storico.");
-    setFase("errore");
-  }
-
-  function nuova() {
-    formRef.current?.reset();
-    setFileName(null);
-    setFormato(DEFAULT_FORMATO);
-    setFase("idle");
-    setProgresso(0);
-    setErrore("");
-    setDownload("");
-    setSemaforo("");
-  }
-
-  if (fase === "fatto") {
+  if (state.downloadUrl) {
     const colore =
-      semaforo === "verde" ? "#16a34a" : semaforo === "rosso" ? "#dc2626" : "#d97706";
+      state.semaforo === "verde" ? "#16a34a" : state.semaforo === "rosso" ? "#dc2626" : "#d97706";
     return (
       <div className="flex flex-col items-center text-center gap-4 py-6">
         <div className="text-2xl font-title font-semibold text-[var(--brand-blue)]">
           Traduzione pronta
         </div>
-        {semaforo ? (
+        {state.semaforo ? (
           <p className="text-sm" style={{ color: colore }}>
-            Controllo qualità: <strong>{semaforo}</strong>
+            Controllo qualità: <strong>{state.semaforo}</strong>
           </p>
         ) : null}
         <div className="flex items-center gap-3">
           <a
-            href={download}
+            href={state.downloadUrl}
             className="bg-[var(--brand-blue)] text-white font-medium py-2 px-6 rounded hover:bg-opacity-90 transition-colors shadow-sm"
           >
             Scarica il documento
           </a>
-          <button onClick={nuova} className="text-sm text-[var(--brand-blue)] underline">
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm text-[var(--brand-blue)] underline"
+          >
             Nuova traduzione
           </button>
         </div>
@@ -124,7 +69,7 @@ export function TraduzioniForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="grid gap-8 md:grid-cols-2">
+    <form action={formAction} className="grid gap-8 md:grid-cols-2">
       {/* Sinistra: documento */}
       <div className="flex flex-col">
         <label className="label" htmlFor="documento">
@@ -151,7 +96,7 @@ export function TraduzioniForm() {
           required
           accept={ACCEPT}
           className="hidden"
-          disabled={lavorando}
+          disabled={pending}
           onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
         />
       </div>
@@ -163,7 +108,7 @@ export function TraduzioniForm() {
             <label className="label" htmlFor="lingua_origine">
               Lingua di partenza
             </label>
-            <select id="lingua_origine" name="lingua_origine" className="select" defaultValue="" disabled={lavorando}>
+            <select id="lingua_origine" name="lingua_origine" className="select" defaultValue="" disabled={pending}>
               <option value="">Auto-rileva</option>
               {LINGUE.map((l) => (
                 <option key={l.code} value={l.code}>{l.nome}</option>
@@ -179,7 +124,7 @@ export function TraduzioniForm() {
               name="lingua_destino"
               className="select"
               defaultValue="it"
-              disabled={lavorando || formato === "solo_trascrizione"}
+              disabled={pending || formato === "solo_trascrizione"}
             >
               {LINGUE.map((l) => (
                 <option key={l.code} value={l.code}>{l.nome}</option>
@@ -201,7 +146,7 @@ export function TraduzioniForm() {
                   name="formato"
                   value={f.value}
                   defaultChecked={f.value === DEFAULT_FORMATO}
-                  disabled={lavorando}
+                  disabled={pending}
                   onChange={() => setFormato(f.value)}
                   className="mt-1"
                 />
@@ -214,17 +159,14 @@ export function TraduzioniForm() {
           </div>
         </div>
 
-        {errore ? <p className="field-error">{errore}</p> : null}
+        {state.error ? <p className="field-error">{state.error}</p> : null}
 
-        {lavorando ? (
-          <div className="flex flex-col gap-2">
-            <div className="h-2 w-full bg-gray-100 rounded overflow-hidden">
-              <div
-                className="h-full bg-[var(--brand-blue)] transition-all duration-500"
-                style={{ width: `${Math.max(5, progresso)}%` }}
-              />
-            </div>
-            <span className="text-xs text-gray-500">{faseTesto}</span>
+        {pending ? (
+          <div className="flex items-center gap-3">
+            <span className="inline-block w-4 h-4 border-2 border-[var(--brand-gray)] border-t-[var(--brand-blue)] rounded-full animate-spin" />
+            <span className="text-sm text-gray-500">
+              Elaborazione in corso… (OCR e traduzione possono richiedere qualche minuto)
+            </span>
           </div>
         ) : (
           <button

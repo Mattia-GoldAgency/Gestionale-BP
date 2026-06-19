@@ -101,23 +101,8 @@ export function backendConfigurato(): boolean {
   return backendUrl() !== null;
 }
 
-async function getJson<T>(path: string): Promise<T> {
-  const base = backendUrl()!;
-  const res = await fetch(`${base}${path}`, {
-    method: "GET",
-    headers: {
-      ...(process.env.BACKEND_API_KEY
-        ? { Authorization: `Bearer ${process.env.BACKEND_API_KEY}` }
-        : {}),
-    },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Backend ${path} ha risposto ${res.status}`);
-  return (await res.json()) as T;
-}
-
 // ---------------------------------------------------------------------------
-// Modulo Traduzioni — job asincrono: avvia (POST) + polling stato (GET).
+// Modulo Traduzioni — endpoint SINCRONO: POST elabora e restituisce il risultato.
 // ---------------------------------------------------------------------------
 export type FormatoTraduzione =
   | "solo_trascrizione"
@@ -151,13 +136,8 @@ export interface StatoTraduzione {
 }
 
 export async function avviaTraduzione(input: InputTraduzione): Promise<StatoTraduzione> {
-  if (!backendUrl()) return mockAvviaTraduzione(input);
+  if (!backendUrl()) return mockTraduzione(input);
   return postJson<StatoTraduzione>("/api/traduci", input);
-}
-
-export async function statoTraduzione(jobId: string): Promise<StatoTraduzione> {
-  if (!backendUrl()) return mockStatoTraduzione(jobId);
-  return getJson<StatoTraduzione>(`/api/traduci/${jobId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -212,12 +192,8 @@ async function mockGenerazione(
   };
 }
 
-function mockAvviaTraduzione(input: InputTraduzione): StatoTraduzione {
-  return { jobId: `mock-${input.praticaId}`, stato: "in_corso", progresso: 0, fase: "In coda" };
-}
-
-async function mockStatoTraduzione(jobId: string): Promise<StatoTraduzione> {
-  // Senza backend, il job "completa" subito con un .docx segnaposto.
+async function mockTraduzione(input: InputTraduzione): Promise<StatoTraduzione> {
+  // Senza backend, restituisce subito un .docx segnaposto.
   const righe = [
     "TRADUZIONE (ANTEPRIMA MOCK)",
     "",
@@ -225,7 +201,7 @@ async function mockStatoTraduzione(jobId: string): Promise<StatoTraduzione> {
     "Il motore reale produrra' il .docx tradotto nel formato scelto.",
   ];
   return {
-    jobId,
+    jobId: `mock-${input.praticaId}`,
     stato: "completato",
     progresso: 100,
     fase: "Completato",

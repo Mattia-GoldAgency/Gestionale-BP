@@ -2,6 +2,9 @@ import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { TraduzioniForm } from "./upload-form";
 
 export const dynamic = "force-dynamic";
+// L'azione di traduzione è sincrona e può durare a lungo (OCR + traduzione):
+// alza il limite di durata della funzione (entro il massimo del piano Vercel).
+export const maxDuration = 300;
 
 export default async function TraduzioniPage() {
   if (supabaseConfigured()) {
