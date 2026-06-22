@@ -34,6 +34,21 @@ export interface RisultatoEstrazione {
   nomeCliente: string | null;
 }
 
+// Controllo di struttura (stadio 7): l'atto NON è riscritto. ``messaggio`` non
+// contiene mai PII; le sezioni sono rubriche del golden (anonimizzate).
+export interface SegnalazioneStruttura {
+  tipo: string;
+  messaggio: string;
+  certezza: string; // "certo" (corretto in automatico) | "dubbio" (da rivedere)
+}
+
+export interface StrutturaReport {
+  correzioni: SegnalazioneStruttura[]; // interventi oggettivi già applicati
+  dubbi: SegnalazioneStruttura[]; // i rari casi incerti da mostrare al notaio
+  sezioniMancanti: string[]; // sezioni del golden non trovate (subset dei dubbi)
+  note?: string | null;
+}
+
 export interface RisultatoGenerazione {
   // Documento generato in base64 (il frontend lo salva su storage e lo serve).
   docBase64: string;
@@ -45,19 +60,9 @@ export interface RisultatoGenerazione {
   // all'atto. Opzionali: assenti (undefined) se la RND non viene prodotta.
   relazioneBase64?: string | null;
   nomeFileRelazione?: string | null;
-  // Sistematizzazione verso il golden della banca (Feature B). Opzionali con
-  // default: contratto retro-compatibile.
-  // - applicabile: la proposta supererebbe il gate (sarebbe sicura);
-  // - applicata: il file in docBase64 È quello conformato dall'LLM;
-  // - integritaOk/valoriAlterati: esito del gate sui dati;
-  // - diff: confronto deterministico → conformato (da salvare nel bucket, non in DB);
-  // - motivo: perché è stata scartata, se applicata=false.
-  sistematizzazioneApplicabile?: boolean;
-  sistematizzazioneApplicata?: boolean;
-  sistematizzazioneIntegritaOk?: boolean;
-  sistematizzazioneValoriAlterati?: string[];
-  sistematizzazioneMotivo?: string | null;
-  sistematizzazioneDiff?: string | null;
+  // Controllo di struttura: l'atto in docBase64 è SEMPRE il deterministico, già
+  // ripulito dalle diciture. ``struttura`` riepiloga correzioni e dubbi. Opzionale.
+  struttura?: StrutturaReport;
 }
 
 export interface InputEstrazione {
@@ -70,8 +75,6 @@ export interface InputEstrazione {
 
 export interface InputGenerazione extends InputEstrazione {
   datiForniti: Record<string, string>;
-  // Se true, attiva la sistematizzazione verso il golden della banca.
-  sistematizzazione?: boolean;
 }
 
 function backendUrl(): string | null {

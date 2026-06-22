@@ -74,15 +74,6 @@ export function MissingForm({
         </div>
       ))}
 
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" name="sistematizzazione" defaultChecked className="mt-1" />
-        <span>
-          Allinea l&apos;atto al modello della banca (sistematizzazione). I dati
-          restano blindati; potrai vedere le differenze e ripristinare il
-          deterministico.
-        </span>
-      </label>
-
       {state.error ? <p className="field-error">{state.error}</p> : null}
 
       <button type="submit" className="btn btn-primary" disabled={pending}>

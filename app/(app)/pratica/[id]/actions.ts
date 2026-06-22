@@ -39,18 +39,17 @@ export async function completaDati(
     if (v) datiForniti[campo.chiave] = v;
   }
 
-  const sistematizzazione = Boolean(formData.get("sistematizzazione"));
-  const esito = await eseguiGenerazione(pratica, datiForniti, sistematizzazione);
+  const esito = await eseguiGenerazione(pratica, datiForniti);
   if (esito.error) return { error: esito.error };
 
   revalidatePath(`/pratica/${praticaId}`);
   redirect(`/pratica/${praticaId}`);
 }
 
-// Genera l'atto quando non mancano dati (form della pagina dettaglio). La
-// checkbox "sistematizzazione" attiva l'allineamento al golden; assente →
-// deterministico (è anche il percorso di "ripristino").
-export async function generaPratica(praticaId: string, formData?: FormData) {
+// Genera l'atto quando non mancano dati (form della pagina dettaglio). L'atto è
+// sempre deterministico (la minuta fa fede sul testo); il controllo di struttura
+// gira lato backend e torna nel report.
+export async function generaPratica(praticaId: string) {
   const supabase = await createClient();
   const { data: pratica } = await supabase
     .from("pratiche")
@@ -59,8 +58,7 @@ export async function generaPratica(praticaId: string, formData?: FormData) {
     .single<Pratica>();
   if (!pratica) redirect("/dashboard");
 
-  const sistematizzazione = Boolean(formData?.get("sistematizzazione"));
-  await eseguiGenerazione(pratica, pratica.dati_forniti ?? {}, sistematizzazione);
+  await eseguiGenerazione(pratica, pratica.dati_forniti ?? {});
   revalidatePath(`/pratica/${praticaId}`);
   redirect(`/pratica/${praticaId}`);
 }
@@ -68,8 +66,7 @@ export async function generaPratica(praticaId: string, formData?: FormData) {
 // --- helper condiviso: chiama il backend, salva il DOCX, aggiorna la pratica ---
 async function eseguiGenerazione(
   pratica: Pratica,
-  datiForniti: Record<string, string>,
-  sistematizzazione = false
+  datiForniti: Record<string, string>
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
 
@@ -91,7 +88,6 @@ async function eseguiGenerazione(
       rnpUrl: rnpSigned.data?.signedUrl ?? "",
       minutaUrl: minutaSigned.data?.signedUrl ?? "",
       datiForniti,
-      sistematizzazione,
     });
   } catch (e) {
     await supabase
@@ -111,20 +107,6 @@ async function eseguiGenerazione(
   });
   if (up.error) return { error: `Salvataggio atto fallito: ${up.error.message}` };
 
-  // Sistematizzazione (Feature B): il diff (testo d'atto) NON va in chiaro nel DB →
-  // si salva come oggetto nel bucket atti (RLS per utente). Se non c'è, si azzera
-  // (es. ripristino del deterministico).
-  let diffPath: string | null = null;
-  if (gen.sistematizzazioneDiff) {
-    diffPath = `${pratica.user_id}/${pratica.id}/sistematizzazione.diff`;
-    await supabase.storage
-      .from(BUCKET_ATTI)
-      .upload(diffPath, Buffer.from(gen.sistematizzazioneDiff, "utf-8"), {
-        contentType: "text/plain; charset=utf-8",
-        upsert: true,
-      });
-  }
-
   const { error: updErr } = await supabase
     .from("pratiche")
     .update({
@@ -134,32 +116,15 @@ async function eseguiGenerazione(
       nome_file_atto: gen.nomeFile,
       coverage: gen.coverage,
       semaforo: gen.semaforo,
-      // motivo = etichette di campi, niente PII → ok nel report jsonb.
+      // Report del controllo di struttura: solo etichette/rubriche, niente PII →
+      // ok nel report jsonb (serve a mostrare il pannello dopo il redirect).
       report: {
         ...gen.reportValidazione,
-        sistematizzazione_motivo: gen.sistematizzazioneMotivo ?? null,
+        struttura: gen.struttura ?? null,
       },
     })
     .eq("id", pratica.id);
   if (updErr) return { error: `Aggiornamento pratica fallito: ${updErr.message}` };
-
-  // Colonne sistematizzazione: richiedono la migration 0006. Aggiornamento
-  // BEST-EFFORT separato così, se la migration non è ancora applicata in
-  // produzione, la generazione NON si rompe (le colonne risultano mancanti ma
-  // l'atto è già salvato sopra). Una volta applicata la 0006, funziona da sé.
-  const { error: sistErr } = await supabase
-    .from("pratiche")
-    .update({
-      sistematizzazione_applicata: gen.sistematizzazioneApplicata ?? false,
-      sistematizzazione_integrita_ok: gen.sistematizzazioneIntegritaOk ?? true,
-      sistematizzazione_diff_path: diffPath,
-    })
-    .eq("id", pratica.id);
-  if (sistErr) {
-    console.warn(
-      `[sistematizzazione] colonne non aggiornate (migration 0006 applicata?): ${sistErr.message}`
-    );
-  }
 
   // Relazione Notarile Definitiva (RND): secondo file generato insieme all'atto.
   // Best-effort: l'atto è già salvato e registrato sopra, quindi un errore qui non
@@ -188,7 +153,6 @@ async function eseguiGenerazione(
       semaforo: gen.semaforo,
       nomeFile: gen.nomeFile,
       relazione: Boolean(gen.relazioneBase64),
-      sistematizzata: gen.sistematizzazioneApplicata ?? false,
     },
   });
 

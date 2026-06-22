@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 import { SemaforoBadge } from "@/components/semaforo";
+import { StrutturaPanel } from "@/components/struttura-panel";
 import { generaPratica } from "./actions";
+import { GeneraForm } from "./genera-form";
 import { DeletePraticaButton } from "./delete-button";
+import type { StrutturaReport } from "@/lib/backend";
 import type { Pratica } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +33,9 @@ export default async function PraticaPage({
   if (pratica.stato === "dati_mancanti") redirect(`/pratica/${id}/dati-mancanti`);
 
   const genera = generaPratica.bind(null, id);
-  const sistMotivo = (pratica.report as Record<string, unknown> | null)?.[
-    "sistematizzazione_motivo"
-  ] as string | null | undefined;
+  const struttura = (pratica.report as Record<string, unknown> | null)?.[
+    "struttura"
+  ] as StrutturaReport | null | undefined;
 
   return (
     <>
@@ -62,45 +65,7 @@ export default async function PraticaPage({
                 .
               </p>
 
-              {pratica.sistematizzazione_applicata ? (
-                <div
-                  className="rounded-md p-3 text-sm flex flex-col gap-2"
-                  style={{ border: "1px solid var(--border)" }}
-                >
-                  <p className="font-medium">✓ Atto allineato al modello della banca</p>
-                  <p style={{ color: "var(--muted)" }}>
-                    Importi, tassi e codici fiscali sono stati verificati e
-                    mantenuti. Controlla le differenze di forma prima della stipula.
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <a
-                      href={`/api/pratica/${id}/diff`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm underline"
-                    >
-                      Mostra differenze
-                    </a>
-                    <form action={genera}>
-                      <button type="submit" className="btn btn-ghost">
-                        Ripristina versione deterministica
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              ) : (
-                <form action={genera} className="flex flex-col gap-1">
-                  <input type="hidden" name="sistematizzazione" value="1" />
-                  <button type="submit" className="btn btn-ghost self-start">
-                    Allinea al modello della banca
-                  </button>
-                  {sistMotivo ? (
-                    <p className="text-xs" style={{ color: "var(--muted)" }}>
-                      Ultimo tentativo non applicato: {sistMotivo}
-                    </p>
-                  ) : null}
-                </form>
-              )}
+              <StrutturaPanel struttura={struttura} />
 
               <a
                 href={`/api/pratica/${id}/download`}
@@ -108,41 +73,32 @@ export default async function PraticaPage({
               >
                 Scarica documenti (.docx)
               </a>
+
+              <GeneraForm
+                action={genera}
+                label="Rigenera l'atto"
+                pendingLabel="Rigenerazione dell'atto in corso…"
+                variant="ghost"
+              />
             </div>
           ) : pratica.stato === "errore" ? (
             <div className="flex flex-col gap-3">
               <p className="field-error">
                 Si è verificato un errore durante la generazione.
               </p>
-              <form action={genera}>
-                <button type="submit" className="btn btn-ghost">
-                  Riprova la generazione
-                </button>
-              </form>
+              <GeneraForm
+                action={genera}
+                label="Riprova la generazione"
+                pendingLabel="Generazione dell'atto in corso…"
+                variant="ghost"
+              />
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               <p className="text-sm">
                 Tutti i dati necessari sono presenti. Genera l&apos;atto.
               </p>
-              <form action={genera} className="flex flex-col gap-3">
-                <label className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="sistematizzazione"
-                    defaultChecked
-                    className="mt-1"
-                  />
-                  <span>
-                    Allinea l&apos;atto al modello della banca (sistematizzazione).
-                    I dati restano blindati; potrai vedere le differenze e
-                    ripristinare la versione deterministica.
-                  </span>
-                </label>
-                <button type="submit" className="btn btn-primary self-start">
-                  Genera l&apos;atto
-                </button>
-              </form>
+              <GeneraForm action={genera} />
             </div>
           )}
 
