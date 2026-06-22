@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ADMIN_EMAILS } from "@/lib/roles";
 
 // Aggiorna la sessione Supabase su ogni richiesta e protegge le rotte private.
 export async function updateSession(request: NextRequest) {
@@ -55,7 +56,7 @@ export async function updateSession(request: NextRequest) {
     const mustChange = Boolean(user.user_metadata?.must_change_password);
     const email = (user.email ?? "").toLowerCase();
     const isAdmin =
-      email === "mattia.bottoni@notaio-busani.it" ||
+      ADMIN_EMAILS.includes(email) ||
       user.user_metadata?.role === "admin";
 
     // Cambio password obbligatorio al primo accesso.
