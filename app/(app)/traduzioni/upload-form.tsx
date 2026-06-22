@@ -18,10 +18,10 @@ const LINGUE = [
 ];
 
 const FORMATI = [
-  { value: "solo_trascrizione", label: "Solo trascrizione", hint: "l'originale trascritto, senza tradurre" },
-  { value: "solo_traduzione", label: "Solo traduzione", hint: "solo il testo nella lingua di arrivo" },
-  { value: "originale_traduzione", label: "Trascrizione + traduzione", hint: "originale e traduzione nello stesso file" },
-  { value: "bilingue", label: "Formato atto tabellare", hint: "tabella a due colonne come da atto" },
+  { value: "solo_trascrizione", label: "Solo trascrizione", hint: "trascrizione del documento, senza traduzione" },
+  { value: "solo_traduzione", label: "Solo traduzione", hint: "traduzione del testo del documento, senza trascrizione del documento originario" },
+  { value: "originale_traduzione", label: "Trascrizione e traduzione", hint: "trascrizione e traduzione del documento" },
+  { value: "bilingue", label: "Formato atto tabellare", hint: "tabella a due colonne formattato come da nostro atto" },
   { value: "mirror", label: "Testo a fronte", hint: "ogni paragrafo seguito dalla traduzione" },
 ];
 
@@ -47,6 +47,32 @@ export function TraduzioniForm() {
   const [avvio, formAction, pending] = useActionState(avviaTraduzione, initial);
   const [fileName, setFileName] = useState<string | null>(null);
   const [formato, setFormato] = useState(DEFAULT_FORMATO);
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      const fileInput = document.getElementById("documento") as HTMLInputElement;
+      if (fileInput) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+  };
 
   // Macchina a stati del flusso asincrono (avvio → polling → finalizza → esito).
   const [fase, setFase] = useState<Fase>("idle");
@@ -241,7 +267,14 @@ export function TraduzioniForm() {
         </label>
         <label
           htmlFor="documento"
-          className="flex-1 min-h-[180px] border-2 border-dashed border-[var(--brand-gray)] rounded-lg flex flex-col items-center justify-center text-center px-4 py-8 cursor-pointer hover:border-[var(--brand-blue)] transition-colors bg-gray-50"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex-1 min-h-[180px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center px-4 py-8 cursor-pointer transition-colors ${
+            dragActive 
+              ? "border-[var(--brand-blue)] bg-[var(--brand-blue)]/5" 
+              : "border-[var(--brand-gray)] bg-gray-50 hover:border-[var(--brand-blue)]"
+          }`}
         >
           <svg className="w-8 h-8 text-[var(--brand-blue)] mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="square" strokeWidth="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5 5 5M12 5v12" />
@@ -269,7 +302,7 @@ export function TraduzioniForm() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="label" htmlFor="lingua_origine">
-              Lingua di partenza
+              Lingua documento
             </label>
             <select id="lingua_origine" name="lingua_origine" className="select" defaultValue="">
               <option value="">Auto-rileva</option>
@@ -280,7 +313,7 @@ export function TraduzioniForm() {
           </div>
           <div>
             <label className="label" htmlFor="lingua_destino">
-              Traduci verso
+              Lingua traduzione
             </label>
             <select
               id="lingua_destino"
