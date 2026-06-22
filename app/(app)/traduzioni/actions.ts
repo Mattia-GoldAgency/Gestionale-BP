@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
-import { avviaTraduzione as backendTraduci, type FormatoTraduzione } from "@/lib/backend";
+import {
+  avviaTraduzione as backendTraduci,
+  statoTraduzione as backendStato,
+  type FormatoTraduzione,
+} from "@/lib/backend";
 import { BUCKET_ATTI, BUCKET_DOCUMENTI, mimePerFile } from "@/lib/types";
 import { logAudit, ipCorrente } from "@/lib/audit";
 
@@ -16,10 +20,25 @@ const FORMATI: FormatoTraduzione[] = [
   "mirror",
 ];
 
-export interface TraduciState {
+// Stato dell'azione di avvio. La traduzione gira in background sul backend: l'avvio
+// restituisce un jobId su cui il client fa polling, oppure (path mock senza backend)
+// direttamente il link di download.
+export interface AvviaState {
   error?: string;
+  jobId?: string;
+  praticaId?: string;
+  // Completamento immediato (path mock, senza BACKEND_URL).
   downloadUrl?: string;
   semaforo?: string;
+}
+
+// Esito della finalizzazione, richiamata dal client al termine del polling.
+export interface FinalizzaResult {
+  error?: string;
+  pending?: boolean; // job ancora in corso (il client continua il polling)
+  downloadUrl?: string;
+  semaforo?: string;
+  report?: Record<string, unknown>;
 }
 
 function sanitize(name: string): string {
@@ -30,13 +49,20 @@ function oggiISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// Esegue una traduzione end-to-end (sincrona): carica il file, chiama il backend
-// che elabora e restituisce il .docx, salva output + pratica + memoria, e ritorna
-// il link di download. Tutto in un'unica azione (nessun polling).
-export async function traduci(
-  _prev: TraduciState,
+function semaforoDaReport(report: Record<string, unknown>): string {
+  const qualita = (report.qualita ?? {}) as Record<string, unknown>;
+  return ["verde", "giallo", "rosso"].includes(qualita.semaforo as string)
+    ? (qualita.semaforo as string)
+    : "giallo";
+}
+
+// Avvia una traduzione: carica il file, prepara glossario/memoria, chiama il backend
+// (che mette in coda un job) e registra subito la pratica in stato "in elaborazione".
+// Ritorna { jobId, praticaId } per il polling lato client. Tutto in pochi secondi.
+export async function avviaTraduzione(
+  _prev: AvviaState,
   formData: FormData
-): Promise<TraduciState> {
+): Promise<AvviaState> {
   if (!supabaseConfigured()) {
     return { error: "Supabase non configurato. Contatta l'amministratore." };
   }
@@ -98,7 +124,7 @@ export async function traduci(
     memoria = (memRows ?? []) as typeof memoria;
   }
 
-  // Chiamata sincrona al backend: elabora e restituisce il documento.
+  // Avvio del job sul backend.
   let esito;
   try {
     esito = await backendTraduci({
@@ -114,52 +140,119 @@ export async function traduci(
   } catch (e) {
     await registraErrore(supabase, praticaId, user, linguaOrigine, linguaDestino, formato, inputPath, file.name);
     return {
-      error: `Traduzione fallita: ${e instanceof Error ? e.message : "errore sconosciuto"}`,
+      error: `Avvio traduzione fallito: ${e instanceof Error ? e.message : "errore sconosciuto"}`,
     };
   }
 
-  if (esito.stato === "errore" || !esito.docBase64) {
+  if (esito.stato === "errore") {
     await registraErrore(supabase, praticaId, user, linguaOrigine, linguaDestino, formato, inputPath, file.name);
-    return { error: esito.errore ?? "Elaborazione non riuscita." };
+    return { error: esito.errore ?? "Avvio non riuscito." };
   }
 
-  // Salva l'output sul bucket atti.
-  const report = (esito.report ?? {}) as Record<string, unknown>;
-  const qualita = (report.qualita ?? {}) as Record<string, unknown>;
-  const semaforo = (["verde", "giallo", "rosso"].includes(qualita.semaforo as string)
-    ? (qualita.semaforo as string)
-    : "giallo");
-  const codiceOrigine = (report.lingua_origine as string) ?? linguaOrigine;
+  // Path mock (nessun BACKEND_URL): il risultato è già pronto → finalizza inline.
+  if (esito.stato === "completato" && esito.docBase64) {
+    const fin = await salvaEsito(
+      supabase, user, praticaId, linguaOrigine, linguaDestino, formato, inputPath, file.name, esito,
+    );
+    return fin.error ? { error: fin.error } : { downloadUrl: fin.downloadUrl, semaforo: fin.semaforo };
+  }
 
-  const nomeFile = esito.nomeFile ?? `traduzione_${praticaId}.docx`;
-  const attoPath = `${user.id}/${praticaId}/output-${sanitize(nomeFile)}`;
-  const bytes = Buffer.from(esito.docBase64, "base64");
-  const upOut = await supabase.storage
-    .from(BUCKET_ATTI)
-    .upload(attoPath, bytes, { contentType: mimePerFile(nomeFile), upsert: true });
-  if (upOut.error) return { error: `Salvataggio output fallito: ${upOut.error.message}` };
-
+  // Path normale: job in background. Registra la pratica in elaborazione e
+  // restituisce il jobId per il polling.
   const insert = await supabase.from("pratiche").insert({
     id: praticaId,
     user_id: user.id,
     notaio: "—",
     data_stipula: oggiISO(),
-    stato: "completata",
-    semaforo,
+    stato: "in_estrazione", // in elaborazione (riusa lo stato di pratica in lavorazione)
     tipo_pratica: "traduzione",
-    lingua_origine: codiceOrigine,
-    lingua_destino: linguaDestino || codiceOrigine,
+    lingua_origine: linguaOrigine,
+    lingua_destino: linguaDestino || null,
     formato_traduzione: formato,
     input_path: inputPath,
     nome_file_input: file.name,
-    atto_path: attoPath,
-    nome_file_atto: nomeFile,
-    report,
+    job_id: esito.jobId,
   });
-  if (insert.error) return { error: `Salvataggio pratica fallito: ${insert.error.message}` };
+  if (insert.error) return { error: `Registrazione pratica fallita: ${insert.error.message}` };
+
+  return { jobId: esito.jobId, praticaId };
+}
+
+// Finalizza una traduzione: interroga lo stato del job e, se completato, salva il
+// .docx, aggiorna la pratica, registra la memoria e ritorna il link di download.
+// Richiamata dal client al termine del polling (stato "completato"/"errore").
+export async function finalizzaTraduzione(
+  praticaId: string,
+  jobId: string
+): Promise<FinalizzaResult> {
+  if (!supabaseConfigured()) {
+    return { error: "Supabase non configurato. Contatta l'amministratore." };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  let stato;
+  try {
+    stato = await backendStato(jobId);
+  } catch (e) {
+    return { error: `Lettura stato fallita: ${e instanceof Error ? e.message : "errore sconosciuto"}` };
+  }
+
+  if (stato.stato === "errore") {
+    await supabase
+      .from("pratiche")
+      .update({ stato: "errore" })
+      .eq("id", praticaId)
+      .eq("user_id", user.id);
+    return { error: stato.errore ?? "Elaborazione non riuscita." };
+  }
+
+  if (stato.stato !== "completato" || !stato.docBase64) {
+    // Ancora in lavorazione: il client continua il polling.
+    return { pending: true };
+  }
+
+  // Recupera i dati della pratica per la coppia di lingue (memoria).
+  const { data: pratica } = await supabase
+    .from("pratiche")
+    .select("lingua_origine,lingua_destino")
+    .eq("id", praticaId)
+    .eq("user_id", user.id)
+    .single<{ lingua_origine: string | null; lingua_destino: string | null }>();
+
+  const report = (stato.report ?? {}) as Record<string, unknown>;
+  const codiceOrigine = (report.lingua_origine as string) ?? pratica?.lingua_origine ?? null;
+  const linguaDestino = (report.lingua_destino as string) ?? pratica?.lingua_destino ?? null;
+  const semaforo = semaforoDaReport(report);
+
+  const nomeFile = stato.nomeFile ?? `traduzione_${praticaId}.docx`;
+  const attoPath = `${user.id}/${praticaId}/output-${sanitize(nomeFile)}`;
+  const bytes = Buffer.from(stato.docBase64, "base64");
+  const upOut = await supabase.storage
+    .from(BUCKET_ATTI)
+    .upload(attoPath, bytes, { contentType: mimePerFile(nomeFile), upsert: true });
+  if (upOut.error) return { error: `Salvataggio output fallito: ${upOut.error.message}` };
+
+  const update = await supabase
+    .from("pratiche")
+    .update({
+      stato: "completata",
+      semaforo,
+      lingua_origine: codiceOrigine,
+      lingua_destino: linguaDestino,
+      atto_path: attoPath,
+      nome_file_atto: nomeFile,
+      report,
+    })
+    .eq("id", praticaId)
+    .eq("user_id", user.id);
+  if (update.error) return { error: `Salvataggio pratica fallito: ${update.error.message}` };
 
   // Memoria di traduzione: salva le voci nuove (idempotente via indice unico).
-  const nuove = esito.memoriaNuova ?? [];
+  const nuove = stato.memoriaNuova ?? [];
   if (nuove.length && codiceOrigine && linguaDestino) {
     const righe = nuove.map((v) => ({
       user_id: user.id,
@@ -181,8 +274,56 @@ export async function traduci(
     email: user.email,
     praticaId,
     ip: await ipCorrente(),
-    dettagli: { linguaOrigine: codiceOrigine, linguaDestino, formato, nomeFile: file.name, semaforo },
+    dettagli: { linguaOrigine: codiceOrigine, linguaDestino, semaforo },
   });
+
+  revalidatePath("/storico");
+  return { downloadUrl: `/api/pratica/${praticaId}/download`, semaforo, report };
+}
+
+// Salvataggio dell'esito quando il documento è già disponibile (path mock).
+// Inserisce la pratica completata in un colpo solo.
+async function salvaEsito(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  user: { id: string; email?: string },
+  praticaId: string,
+  linguaOrigine: string | null,
+  linguaDestino: string,
+  formato: FormatoTraduzione,
+  inputPath: string,
+  nomeFileInput: string,
+  esito: { docBase64?: string | null; nomeFile?: string | null; report?: Record<string, unknown> | null },
+): Promise<{ error?: string; downloadUrl?: string; semaforo?: string }> {
+  const report = (esito.report ?? {}) as Record<string, unknown>;
+  const semaforo = semaforoDaReport(report);
+  const codiceOrigine = (report.lingua_origine as string) ?? linguaOrigine;
+
+  const nomeFile = esito.nomeFile ?? `traduzione_${praticaId}.docx`;
+  const attoPath = `${user.id}/${praticaId}/output-${sanitize(nomeFile)}`;
+  const bytes = Buffer.from(esito.docBase64 ?? "", "base64");
+  const upOut = await supabase.storage
+    .from(BUCKET_ATTI)
+    .upload(attoPath, bytes, { contentType: mimePerFile(nomeFile), upsert: true });
+  if (upOut.error) return { error: `Salvataggio output fallito: ${upOut.error.message}` };
+
+  const insert = await supabase.from("pratiche").insert({
+    id: praticaId,
+    user_id: user.id,
+    notaio: "—",
+    data_stipula: oggiISO(),
+    stato: "completata",
+    semaforo,
+    tipo_pratica: "traduzione",
+    lingua_origine: codiceOrigine,
+    lingua_destino: linguaDestino || codiceOrigine,
+    formato_traduzione: formato,
+    input_path: inputPath,
+    nome_file_input: nomeFileInput,
+    atto_path: attoPath,
+    nome_file_atto: nomeFile,
+    report,
+  });
+  if (insert.error) return { error: `Salvataggio pratica fallito: ${insert.error.message}` };
 
   revalidatePath("/storico");
   return { downloadUrl: `/api/pratica/${praticaId}/download`, semaforo };

@@ -98,6 +98,23 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function getJson<T>(path: string): Promise<T> {
+  const base = backendUrl()!;
+  const res = await fetch(`${base}${path}`, {
+    method: "GET",
+    headers: {
+      ...(process.env.BACKEND_API_KEY
+        ? { Authorization: `Bearer ${process.env.BACKEND_API_KEY}` }
+        : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Backend ${path} ha risposto ${res.status}`);
+  }
+  return (await res.json()) as T;
+}
+
 // --- Stadio 3+4: estrazione LLM + merge registry -> campi mancanti ---
 export async function estraiPratica(
   input: InputEstrazione
@@ -119,7 +136,11 @@ export function backendConfigurato(): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Modulo Traduzioni — endpoint SINCRONO: POST elabora e restituisce il risultato.
+// Modulo Traduzioni — endpoint ASINCRONO (job + polling).
+//   - POST /api/traduci          -> avvia il job, risponde {jobId, stato:"in_corso"}.
+//   - GET  /api/traduci/{jobId}   -> stato/progresso; a fine job docBase64 + report.
+// L'OCR multipagina + traduzione puo' durare minuti: il lavoro gira in background
+// sul backend e il frontend fa polling, senza limiti di durata della richiesta.
 // ---------------------------------------------------------------------------
 export type FormatoTraduzione =
   | "solo_trascrizione"
@@ -155,6 +176,17 @@ export interface StatoTraduzione {
 export async function avviaTraduzione(input: InputTraduzione): Promise<StatoTraduzione> {
   if (!backendUrl()) return mockTraduzione(input);
   return postJson<StatoTraduzione>("/api/traduci", input);
+}
+
+// Polling dello stato di un job di traduzione. A job concluso la risposta porta
+// docBase64 + report + memoriaNuova; mentre e' in corso porta progresso/fase.
+export async function statoTraduzione(jobId: string): Promise<StatoTraduzione> {
+  if (!backendUrl()) {
+    // Senza backend non esistono job reali: il flusso mock viene chiuso a monte
+    // (avvio sincrono). Qui rispondiamo "completato" inerte per sicurezza.
+    return { jobId, stato: "completato", progresso: 100, fase: "Completato" };
+  }
+  return getJson<StatoTraduzione>(`/api/traduci/${encodeURIComponent(jobId)}`);
 }
 
 // ---------------------------------------------------------------------------

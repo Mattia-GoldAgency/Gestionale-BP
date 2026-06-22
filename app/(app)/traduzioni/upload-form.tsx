@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { traduci, type TraduciState } from "./actions";
+import { useActionState, useEffect, useState } from "react";
+import { avviaTraduzione, finalizzaTraduzione, type AvviaState } from "./actions";
 
 const LINGUE = [
   { code: "it", nome: "Italiano" },
@@ -29,29 +29,141 @@ const DEFAULT_FORMATO = "originale_traduzione";
 
 const ACCEPT = ".pdf,.doc,.docx,.rtf,.odt,.jpg,.jpeg,.png,.tif,.tiff,.gif,.webp,.bmp";
 
-const initial: TraduciState = {};
+const POLL_INTERVAL_MS = 2500;
+const POLL_MAX_MS = 30 * 60 * 1000; // 30 minuti: limite di sicurezza del polling
+
+type Fase = "idle" | "polling" | "finalizing" | "done" | "error";
+
+const initial: AvviaState = {};
+
+function costoStimato(report: Record<string, unknown> | null): string | null {
+  if (!report) return null;
+  const c = report.costo_usd_stimato;
+  if (typeof c !== "number" || !isFinite(c)) return null;
+  return `$${c.toFixed(2)}`;
+}
 
 export function TraduzioniForm() {
-  const [state, formAction, pending] = useActionState(traduci, initial);
+  const [avvio, formAction, pending] = useActionState(avviaTraduzione, initial);
   const [fileName, setFileName] = useState<string | null>(null);
   const [formato, setFormato] = useState(DEFAULT_FORMATO);
 
-  if (state.downloadUrl) {
+  // Macchina a stati del flusso asincrono (avvio → polling → finalizza → esito).
+  const [fase, setFase] = useState<Fase>("idle");
+  const [progresso, setProgresso] = useState(0);
+  const [faseLabel, setFaseLabel] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [semaforo, setSemaforo] = useState<string | null>(null);
+  const [report, setReport] = useState<Record<string, unknown> | null>(null);
+  const [errore, setErrore] = useState<string | null>(null);
+
+  // Reagisce all'esito dell'avvio e guida il polling fino al completamento.
+  // Gli aggiornamenti di stato sono differiti (setTimeout) per non eseguire
+  // setState in modo sincrono nel corpo dell'effetto.
+  useEffect(() => {
+    const jobId = avvio.jobId;
+    const praticaId = avvio.praticaId;
+    const start = Date.now();
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const begin = () => {
+      if (cancelled) return;
+      if (avvio.error) {
+        setErrore(avvio.error);
+        setFase("error");
+        return;
+      }
+      // Path mock (nessun backend): risultato già pronto.
+      if (avvio.downloadUrl) {
+        setDownloadUrl(avvio.downloadUrl);
+        setSemaforo(avvio.semaforo ?? null);
+        setFase("done");
+        return;
+      }
+      if (!jobId || !praticaId) return;
+      setErrore(null);
+      setProgresso(0);
+      setFaseLabel("In coda");
+      setFase("polling");
+      timer = setTimeout(tick, POLL_INTERVAL_MS);
+    };
+
+    const tick = async () => {
+      if (!jobId || !praticaId) return;
+      if (cancelled) return;
+      if (Date.now() - start > POLL_MAX_MS) {
+        setErrore("Tempo di elaborazione superato. Il documento potrebbe essere troppo lungo: riprova più tardi.");
+        setFase("error");
+        return;
+      }
+      try {
+        const res = await fetch(`/api/traduzioni/${jobId}`, { cache: "no-store" });
+        const data = (await res.json()) as {
+          stato?: string;
+          progresso?: number;
+          fase?: string | null;
+          errore?: string | null;
+        };
+        if (cancelled) return;
+        if (typeof data.progresso === "number") setProgresso(data.progresso);
+        if (data.fase) setFaseLabel(data.fase);
+
+        if (data.stato === "completato" || data.stato === "errore") {
+          setFase("finalizing");
+          const fin = await finalizzaTraduzione(praticaId, jobId);
+          if (cancelled) return;
+          if (fin.pending) {
+            // Stato non ancora consolidato: continua il polling.
+            setFase("polling");
+            timer = setTimeout(tick, POLL_INTERVAL_MS);
+            return;
+          }
+          if (fin.error) {
+            setErrore(fin.error);
+            setFase("error");
+            return;
+          }
+          setDownloadUrl(fin.downloadUrl ?? null);
+          setSemaforo(fin.semaforo ?? null);
+          setReport(fin.report ?? null);
+          setFase("done");
+          return;
+        }
+      } catch {
+        // Errore di rete transitorio: riprova al tick successivo.
+      }
+      timer = setTimeout(tick, POLL_INTERVAL_MS);
+    };
+
+    timer = setTimeout(begin, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [avvio]);
+
+  // --- Esito pronto ---------------------------------------------------------
+  if (fase === "done" && downloadUrl) {
     const colore =
-      state.semaforo === "verde" ? "#16a34a" : state.semaforo === "rosso" ? "#dc2626" : "#d97706";
+      semaforo === "verde" ? "#16a34a" : semaforo === "rosso" ? "#dc2626" : "#d97706";
+    const costo = costoStimato(report);
     return (
       <div className="flex flex-col items-center text-center gap-4 py-6">
         <div className="text-2xl font-title font-semibold text-[var(--brand-blue)]">
           Traduzione pronta
         </div>
-        {state.semaforo ? (
+        {semaforo ? (
           <p className="text-sm" style={{ color: colore }}>
-            Controllo qualità: <strong>{state.semaforo}</strong>
+            Controllo qualità: <strong>{semaforo}</strong>
           </p>
+        ) : null}
+        {costo ? (
+          <p className="text-xs text-gray-500">Costo di elaborazione stimato: {costo}</p>
         ) : null}
         <div className="flex items-center gap-3">
           <a
-            href={state.downloadUrl}
+            href={downloadUrl}
             className="bg-[var(--brand-blue)] text-white font-medium py-2 px-6 rounded hover:bg-opacity-90 transition-colors shadow-sm"
           >
             Scarica il documento
@@ -68,6 +180,58 @@ export function TraduzioniForm() {
     );
   }
 
+  // --- Errore ---------------------------------------------------------------
+  if (fase === "error") {
+    return (
+      <div className="flex flex-col items-center text-center gap-4 py-6">
+        <div className="text-xl font-title font-semibold text-[var(--brand-blue)]">
+          Elaborazione non riuscita
+        </div>
+        <p className="field-error">{errore ?? "Si è verificato un errore."}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-[var(--brand-blue)] text-white font-medium py-2 px-6 rounded hover:bg-opacity-90 transition-colors shadow-sm"
+        >
+          Riprova
+        </button>
+      </div>
+    );
+  }
+
+  // --- In lavorazione (avvio + polling + finalizzazione) --------------------
+  const working = pending || fase === "polling" || fase === "finalizing";
+  if (working) {
+    const pct = fase === "finalizing" ? 100 : progresso;
+    const label =
+      fase === "finalizing"
+        ? "Salvataggio del documento…"
+        : fase === "polling"
+        ? faseLabel ?? "Elaborazione in corso…"
+        : "Caricamento e avvio…";
+    return (
+      <div className="flex flex-col gap-4 py-8 max-w-md mx-auto">
+        <div className="flex items-center gap-3">
+          <span className="inline-block w-4 h-4 border-2 border-[var(--brand-gray)] border-t-[var(--brand-blue)] rounded-full animate-spin" />
+          <span className="text-sm text-gray-600">{label}</span>
+          {fase === "polling" ? (
+            <span className="text-sm text-gray-400 ml-auto">{pct}%</span>
+          ) : null}
+        </div>
+        <div className="w-full h-2 bg-gray-100 rounded overflow-hidden">
+          <div
+            className="h-full bg-[var(--brand-blue)] transition-all duration-500"
+            style={{ width: `${Math.max(5, pct)}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-500 text-center">
+          OCR e traduzione possono richiedere alcuni minuti sui documenti lunghi. Puoi lasciare
+          questa pagina aperta.
+        </p>
+      </div>
+    );
+  }
+
+  // --- Form -----------------------------------------------------------------
   return (
     <form action={formAction} className="grid gap-8 md:grid-cols-2">
       {/* Sinistra: documento */}
@@ -96,7 +260,6 @@ export function TraduzioniForm() {
           required
           accept={ACCEPT}
           className="hidden"
-          disabled={pending}
           onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
         />
       </div>
@@ -108,7 +271,7 @@ export function TraduzioniForm() {
             <label className="label" htmlFor="lingua_origine">
               Lingua di partenza
             </label>
-            <select id="lingua_origine" name="lingua_origine" className="select" defaultValue="" disabled={pending}>
+            <select id="lingua_origine" name="lingua_origine" className="select" defaultValue="">
               <option value="">Auto-rileva</option>
               {LINGUE.map((l) => (
                 <option key={l.code} value={l.code}>{l.nome}</option>
@@ -124,7 +287,7 @@ export function TraduzioniForm() {
               name="lingua_destino"
               className="select"
               defaultValue="it"
-              disabled={pending || formato === "solo_trascrizione"}
+              disabled={formato === "solo_trascrizione"}
             >
               {LINGUE.map((l) => (
                 <option key={l.code} value={l.code}>{l.nome}</option>
@@ -146,7 +309,6 @@ export function TraduzioniForm() {
                   name="formato"
                   value={f.value}
                   defaultChecked={f.value === DEFAULT_FORMATO}
-                  disabled={pending}
                   onChange={() => setFormato(f.value)}
                   className="mt-1"
                 />
@@ -159,23 +321,19 @@ export function TraduzioniForm() {
           </div>
         </div>
 
-        {state.error ? <p className="field-error">{state.error}</p> : null}
+        {avvio.error ? <p className="field-error">{avvio.error}</p> : null}
 
-        {pending ? (
-          <div className="flex items-center gap-3">
-            <span className="inline-block w-4 h-4 border-2 border-[var(--brand-gray)] border-t-[var(--brand-blue)] rounded-full animate-spin" />
-            <span className="text-sm text-gray-500">
-              Elaborazione in corso… (OCR e traduzione possono richiedere qualche minuto)
-            </span>
-          </div>
-        ) : (
-          <button
-            type="submit"
-            className="bg-[var(--brand-blue)] text-white font-medium py-2 px-6 rounded hover:bg-opacity-90 transition-colors shadow-sm self-start"
-          >
-            Traduci
-          </button>
-        )}
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+          Il controllo qualità completo verifica tutta la traduzione: sui documenti lunghi aumenta
+          tempi e costi di elaborazione.
+        </p>
+
+        <button
+          type="submit"
+          className="bg-[var(--brand-blue)] text-white font-medium py-2 px-6 rounded hover:bg-opacity-90 transition-colors shadow-sm self-start"
+        >
+          Traduci
+        </button>
       </div>
     </form>
   );
