@@ -74,20 +74,35 @@ export interface InputGenerazione extends InputEstrazione {
   sistematizzazione?: boolean;
 }
 
+// Normalizza un valore letto da process.env: rimuove il BOM (U+FEFF) e gli
+// spazi. Una variabile d'ambiente copiata da una sorgente con BOM (es. un file
+// salvato come UTF-8-BOM) lasciava il carattere invisibile in testa al valore;
+// in BACKEND_URL questo faceva fallire fetch con "Failed to parse URL", in
+// BACKEND_API_KEY avrebbe rotto l'header Authorization.
+function envClean(name: string): string | null {
+  const raw = process.env[name];
+  if (!raw) return null;
+  const v = raw.replace(/[﻿​]/g, "").trim();
+  return v ? v : null;
+}
+
 function backendUrl(): string | null {
-  const u = process.env.BACKEND_URL;
-  return u && u.trim() ? u.replace(/\/$/, "") : null;
+  const u = envClean("BACKEND_URL");
+  return u ? u.replace(/\/+$/, "") : null;
+}
+
+function backendApiKey(): string | null {
+  return envClean("BACKEND_API_KEY");
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const base = backendUrl()!;
+  const apiKey = backendApiKey();
   const res = await fetch(`${base}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(process.env.BACKEND_API_KEY
-        ? { Authorization: `Bearer ${process.env.BACKEND_API_KEY}` }
-        : {}),
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
     },
     body: JSON.stringify(body),
     cache: "no-store",
@@ -100,12 +115,11 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 
 async function getJson<T>(path: string): Promise<T> {
   const base = backendUrl()!;
+  const apiKey = backendApiKey();
   const res = await fetch(`${base}${path}`, {
     method: "GET",
     headers: {
-      ...(process.env.BACKEND_API_KEY
-        ? { Authorization: `Bearer ${process.env.BACKEND_API_KEY}` }
-        : {}),
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
     },
     cache: "no-store",
   });
