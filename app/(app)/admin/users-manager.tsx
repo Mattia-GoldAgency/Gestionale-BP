@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   creaUtente,
   resetPassword,
   eliminaUtente,
   cambiaRuolo,
+  aggiornaSezioniUtente,
+  backfillSezioniCorrenti,
   type UtenteRiga,
 } from "./actions";
 import type { Ruolo } from "@/lib/roles";
+import { SEZIONI_CONTROLLATE } from "@/lib/sezioni";
 
 interface Credenziale {
   email: string;
@@ -27,6 +30,8 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
 
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [backfillMsg, setBackfillMsg] = useState<string | null>(null);
 
   const filteredUtenti = utenti.filter((u) => u.email.toLowerCase().includes(search.toLowerCase()));
   const sortedUtenti = [...filteredUtenti].sort((a, b) => {
@@ -89,6 +94,46 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
     fd.set("ruolo", nuovo);
     try {
       await cambiaRuolo(fd);
+      refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Errore");
+    }
+  }
+
+  // Abilita/disabilita una singola sezione: ricostruisce l'intera lista e la invia.
+  async function onToggleSezione(u: UtenteRiga, chiave: string, attiva: boolean) {
+    setError(null);
+    const set = new Set(u.sezioni);
+    if (attiva) set.add(chiave);
+    else set.delete(chiave);
+    const fd = new FormData();
+    fd.set("id", u.id);
+    for (const c of set) fd.append("sezioni", c);
+    try {
+      await aggiornaSezioniUtente(fd);
+      refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Errore");
+    }
+  }
+
+  async function onBackfill() {
+    if (
+      !confirm(
+        "Abilitare TUTTE le sezioni attuali a TUTTI i collaboratori esistenti?\n" +
+          "Da usare una volta al primo rilascio. Gli admin non sono toccati."
+      )
+    )
+      return;
+    setError(null);
+    setBackfillMsg(null);
+    try {
+      const res = await backfillSezioniCorrenti();
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setBackfillMsg(`Sezioni abilitate a ${res.aggiornati ?? 0} collaboratori.`);
       refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Errore");
@@ -161,10 +206,14 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
         </div>
         <p className="text-xs" style={{ color: "var(--muted)" }}>
           La password viene generata automaticamente e mostrata qui sopra una sola volta.
+          Il nuovo utente parte <strong>senza sezioni attive</strong>: abilitale dalla tabella qui sotto.
         </p>
       </form>
 
       {error ? <p className="field-error">{error}</p> : null}
+      {backfillMsg ? (
+        <p className="text-sm" style={{ color: "var(--verde)" }}>{backfillMsg}</p>
+      ) : null}
 
       <div className="card overflow-hidden">
         <div className="p-4 flex flex-wrap gap-4 items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -175,20 +224,33 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button
-            type="button"
-            className="btn btn-ghost text-sm"
-            style={{ padding: "0.4rem 0.8rem" }}
-            onClick={() => setSortOrder(o => o === "asc" ? "desc" : "asc")}
-          >
-            Ordina: {sortOrder === "asc" ? "A-Z ↓" : "Z-A ↑"}
-          </button>
+          <div className="flex gap-2 items-center">
+            <button
+              type="button"
+              className="btn btn-ghost text-sm"
+              style={{ padding: "0.4rem 0.8rem" }}
+              onClick={onBackfill}
+              disabled={pending}
+              title="Abilita tutte le sezioni attuali a tutti i collaboratori (una volta sola, al primo rilascio)"
+            >
+              Abilita tutte le sezioni a tutti
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost text-sm"
+              style={{ padding: "0.4rem 0.8rem" }}
+              onClick={() => setSortOrder(o => o === "asc" ? "desc" : "asc")}
+            >
+              Ordina: {sortOrder === "asc" ? "A-Z ↓" : "Z-A ↑"}
+            </button>
+          </div>
         </div>
         <table className="table">
           <thead>
             <tr>
               <th>Email</th>
               <th>Ruolo</th>
+              <th>Sezioni</th>
               <th>1° accesso</th>
               <th>Ultimo accesso</th>
               <th style={{ textAlign: "right" }}>Azioni</th>
@@ -196,52 +258,100 @@ export function UsersManager({ utenti }: { utenti: UtenteRiga[] }) {
           </thead>
           <tbody>
             {sortedUtenti.map((u) => (
-              <tr key={u.id}>
-                <td>{u.email}</td>
-                <td>
-                  <select
-                    className="select"
-                    style={{ padding: "0.3rem 0.5rem", width: "auto" }}
-                    value={u.ruolo}
-                    onChange={(e) => onRole(u.id, e.target.value as Ruolo)}
-                  >
-                    <option value="collaboratore">Collaboratore</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </td>
-                <td>
-                  {u.mustChange ? (
-                    <span style={{ color: "var(--giallo)" }}>da cambiare</span>
-                  ) : (
-                    <span style={{ color: "var(--verde)" }}>ok</span>
-                  )}
-                </td>
-                <td className="text-sm" style={{ color: "var(--muted)" }}>
-                  {u.ultimoAccesso
-                    ? new Date(u.ultimoAccesso).toLocaleString("it-IT")
-                    : "mai"}
-                </td>
-                <td>
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      style={{ padding: "0.35rem 0.7rem" }}
-                      onClick={() => onReset(u.id)}
+              <Fragment key={u.id}>
+                <tr>
+                  <td>{u.email}</td>
+                  <td>
+                    <select
+                      className="select"
+                      style={{ padding: "0.3rem 0.5rem", width: "auto" }}
+                      value={u.ruolo}
+                      onChange={(e) => onRole(u.id, e.target.value as Ruolo)}
                     >
-                      Reset password
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      style={{ padding: "0.35rem 0.7rem" }}
-                      onClick={() => onDelete(u.id, u.email)}
-                    >
-                      Elimina
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                      <option value="collaboratore">Collaboratore</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+                  <td>
+                    {u.ruolo === "admin" ? (
+                      <span className="text-sm" style={{ color: "var(--muted)" }}>
+                        accesso completo
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-ghost text-sm"
+                        style={{ padding: "0.3rem 0.6rem" }}
+                        onClick={() => setExpanded((id) => (id === u.id ? null : u.id))}
+                      >
+                        {u.sezioni.length}/{SEZIONI_CONTROLLATE.length} {expanded === u.id ? "▴" : "▾"}
+                      </button>
+                    )}
+                  </td>
+                  <td>
+                    {u.mustChange ? (
+                      <span style={{ color: "var(--giallo)" }}>da cambiare</span>
+                    ) : (
+                      <span style={{ color: "var(--verde)" }}>ok</span>
+                    )}
+                  </td>
+                  <td className="text-sm" style={{ color: "var(--muted)" }}>
+                    {u.ultimoAccesso
+                      ? new Date(u.ultimoAccesso).toLocaleString("it-IT")
+                      : "mai"}
+                  </td>
+                  <td>
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ padding: "0.35rem 0.7rem" }}
+                        onClick={() => onReset(u.id)}
+                      >
+                        Reset password
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        style={{ padding: "0.35rem 0.7rem" }}
+                        onClick={() => onDelete(u.id, u.email)}
+                      >
+                        Elimina
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {expanded === u.id && u.ruolo !== "admin" ? (
+                  <tr>
+                    <td colSpan={6} style={{ background: "var(--brand-light)" }}>
+                      <div className="flex flex-col gap-2 py-2">
+                        <p className="text-sm font-title" style={{ color: "var(--brand-blue)" }}>
+                          Sezioni accessibili a {u.email}
+                        </p>
+                        <div className="flex flex-wrap gap-4">
+                          {SEZIONI_CONTROLLATE.map((s) => {
+                            const attiva = u.sezioni.includes(s.chiave);
+                            return (
+                              <label key={s.chiave} className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={attiva}
+                                  disabled={pending}
+                                  onChange={(e) => onToggleSezione(u, s.chiave, e.target.checked)}
+                                />
+                                <span>{s.etichetta}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>
+                          Lo Storico pratiche è sempre accessibile e non è gestito qui.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </Fragment>
             ))}
           </tbody>
         </table>

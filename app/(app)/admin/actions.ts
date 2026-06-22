@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin, type Ruolo, ADMIN_EMAILS } from "@/lib/roles";
+import { CHIAVI_SEZIONI } from "@/lib/sezioni";
 import { generaPassword } from "@/lib/password";
 import { logAudit, ipCorrente } from "@/lib/audit";
 
@@ -26,6 +27,7 @@ export interface UtenteRiga {
   mustChange: boolean;
   creato: string;
   ultimoAccesso: string | null;
+  sezioni: string[];
 }
 
 export async function listaUtenti(): Promise<UtenteRiga[]> {
@@ -41,6 +43,10 @@ export async function listaUtenti(): Promise<UtenteRiga[]> {
         ADMIN_EMAILS.includes(email) || u.user_metadata?.role === "admin"
           ? "admin"
           : "collaboratore";
+      const sezRaw = u.app_metadata?.sezioni_abilitate;
+      const sezioni = Array.isArray(sezRaw)
+        ? sezRaw.filter((c): c is string => typeof c === "string")
+        : [];
       return {
         id: u.id,
         email: u.email ?? "",
@@ -48,6 +54,7 @@ export async function listaUtenti(): Promise<UtenteRiga[]> {
         mustChange: Boolean(u.user_metadata?.must_change_password),
         creato: u.created_at,
         ultimoAccesso: u.last_sign_in_at ?? null,
+        sezioni,
       };
     })
     .sort((a, b) => a.email.localeCompare(b.email));
@@ -79,6 +86,9 @@ export async function creaUtente(
     password,
     email_confirm: true,
     user_metadata: { role: ruolo, must_change_password: true },
+    // Opt-in: il nuovo utente nasce senza sezioni controllate abilitate.
+    // Sarà l'admin ad attivarle dalla griglia permessi.
+    app_metadata: { sezioni_abilitate: [] },
   });
   if (error) return { error: error.message };
 
@@ -128,6 +138,76 @@ export async function cambiaRuolo(formData: FormData): Promise<void> {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
+}
+
+// Imposta le sezioni controllate abilitate per un utente. Le chiavi arrivano dai
+// toggle dell'Admin (formData.getAll("sezioni")) e vengono validate contro il
+// registro: nessuna chiave arbitraria può finire in app_metadata.
+export async function aggiornaSezioniUtente(formData: FormData): Promise<void> {
+  const me = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const richieste = formData.getAll("sezioni").map((v) => String(v));
+  const sezioni_abilitate = CHIAVI_SEZIONI.filter((c) => richieste.includes(c));
+
+  const admin = createAdminClient();
+  const { data: cur } = await admin.auth.admin.getUserById(id);
+  const { error } = await admin.auth.admin.updateUserById(id, {
+    app_metadata: {
+      ...(cur.user?.app_metadata ?? {}),
+      sezioni_abilitate,
+    },
+  });
+  if (error) throw new Error(error.message);
+
+  await logAudit({
+    azione: "cambia_sezioni",
+    userId: me.id,
+    email: me.email,
+    ip: await ipCorrente(),
+    dettagli: { utente: cur.user?.email ?? id, sezioni: sezioni_abilitate },
+  });
+  revalidatePath("/admin");
+}
+
+export interface BackfillResult {
+  error?: string;
+  aggiornati?: number;
+}
+
+// One-time: abilita TUTTE le sezioni controllate attuali a TUTTI i collaboratori
+// esistenti, per non togliere accesso a chi già lavora al primo rilascio.
+// Gli admin sono saltati (hanno già accesso completo). Da premere una volta.
+export async function backfillSezioniCorrenti(): Promise<BackfillResult> {
+  const me = await requireAdmin();
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  if (error) return { error: error.message };
+
+  let aggiornati = 0;
+  for (const u of data.users) {
+    const email = (u.email ?? "").toLowerCase();
+    const isUserAdmin =
+      ADMIN_EMAILS.includes(email) || u.user_metadata?.role === "admin";
+    if (isUserAdmin) continue;
+    const { error: upErr } = await admin.auth.admin.updateUserById(u.id, {
+      app_metadata: {
+        ...(u.app_metadata ?? {}),
+        sezioni_abilitate: CHIAVI_SEZIONI,
+      },
+    });
+    if (!upErr) aggiornati++;
+  }
+
+  await logAudit({
+    azione: "backfill_sezioni",
+    userId: me.id,
+    email: me.email,
+    ip: await ipCorrente(),
+    dettagli: { aggiornati, sezioni: CHIAVI_SEZIONI },
+  });
+  revalidatePath("/admin");
+  return { aggiornati };
 }
 
 export interface ResetResult {
