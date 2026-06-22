@@ -13,7 +13,9 @@ export type AzioneAudit =
   | "elimina_pratica"
   | "retention_purge"
   | "crea_utente"
-  | "elimina_utente";
+  | "elimina_utente"
+  | "cambia_sezioni"
+  | "backfill_sezioni";
 
 export interface AuditEntry {
   azione: AzioneAudit;

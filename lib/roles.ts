@@ -3,7 +3,15 @@ import type { User } from "@supabase/supabase-js";
 export type Ruolo = "admin" | "collaboratore";
 
 // Admin "di sistema": garantiti tali anche senza metadata (fail-safe).
-export const ADMIN_EMAILS = ["mattia.bottoni@notaio-busani.it"];
+// Configurabile via ADMIN_EMAILS (lista separata da virgola); default storico
+// per non alterare il comportamento in produzione. In staging si imposta
+// l'email dell'admin di test.
+export const ADMIN_EMAILS = (
+  process.env.ADMIN_EMAILS ?? "mattia.bottoni@notaio-busani.it"
+)
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 export function ruoloDi(user: Pick<User, "email" | "user_metadata"> | null): Ruolo {
   if (!user) return "collaboratore";

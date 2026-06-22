@@ -34,6 +34,10 @@ export default async function DashboardLayout({
     .slice(0, 2);
   const displayInitials = initials || "U";
 
+  // Banner ambiente: mostrato solo in staging (NEXT_PUBLIC_APP_ENV=staging),
+  // per non confondere l'ambiente di test con la produzione ufficiale.
+  const isStaging = process.env.NEXT_PUBLIC_APP_ENV === "staging";
+
   return (
     <div className="flex h-screen bg-[var(--brand-light)] font-sans text-[var(--foreground)] antialiased overflow-hidden">
       {/* Sidebar */}
@@ -89,6 +93,12 @@ export default async function DashboardLayout({
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Banner ambiente di test (solo staging) */}
+        {isStaging && (
+          <div className="bg-amber-400 text-amber-950 text-xs font-semibold text-center py-1.5 px-4 shrink-0 tracking-wide">
+            🧪 AMBIENTE DI TEST (STAGING) — le modifiche qui non toccano la produzione
+          </div>
+        )}
         {/* Header */}
         <header className="bg-white shadow-sm z-10 border-b border-[var(--brand-gray)] shrink-0">
           <div className="flex items-center justify-between px-8 py-4">
