@@ -243,11 +243,41 @@ export function TraduzioniForm() {
             <span className="text-sm text-gray-400 ml-auto">{pct}%</span>
           ) : null}
         </div>
-        <div className="w-full h-2 bg-gray-100 rounded overflow-hidden">
-          <div
-            className="h-full bg-[var(--brand-blue)] transition-all duration-500"
-            style={{ width: `${Math.max(5, pct)}%` }}
-          />
+        <style>{`
+          @keyframes pen-write {
+            0%, 100% { transform: rotate(-15deg) translateY(0); }
+            50% { transform: rotate(-5deg) translateY(-2px); }
+          }
+          .animate-pen {
+            animation: pen-write 0.4s ease-in-out infinite;
+            transform-origin: bottom left;
+          }
+        `}</style>
+        <div className="relative w-full pt-8 pb-2">
+          <div className="w-full h-2 bg-gray-100 rounded relative">
+            <div
+              className="h-full bg-[var(--brand-blue)] transition-all duration-500 rounded relative"
+              style={{ width: `${Math.max(2, pct)}%` }}
+            >
+              <div className="absolute right-0 top-0 -translate-y-full translate-x-1/2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="white"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-[var(--brand-blue)] animate-pen drop-shadow-md"
+                >
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                  <path d="m15 5 4 4" />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
         <p className="text-xs text-gray-500 text-center">
           OCR e traduzione possono richiedere alcuni minuti sui documenti lunghi. Puoi lasciare
@@ -365,7 +395,7 @@ export function TraduzioniForm() {
           type="submit"
           className="bg-[var(--brand-blue)] text-white font-medium py-2 px-6 rounded hover:bg-opacity-90 transition-colors shadow-sm self-start"
         >
-          Traduci
+          Esegui
         </button>
       </div>
     </form>
