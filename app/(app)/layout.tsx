@@ -96,7 +96,7 @@ export default async function DashboardLayout({
         {/* Banner ambiente di test (solo staging) */}
         {isStaging && (
           <div className="bg-amber-400 text-amber-950 text-xs font-semibold text-center py-1.5 px-4 shrink-0 tracking-wide">
-            AMBIENTE DI TEST (STAGING) — le modifiche qui non toccano la produzione
+            🧪 AMBIENTE DI TEST (STAGING) — le modifiche qui non toccano la produzione
           </div>
         )}
         {/* Header */}
