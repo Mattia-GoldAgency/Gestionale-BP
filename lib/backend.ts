@@ -98,6 +98,21 @@ function backendApiKey(): string | null {
   return envClean("BACKEND_API_KEY");
 }
 
+// Costruisce un Error leggibile da una risposta di errore del backend. FastAPI
+// serializza gli errori come { "detail": "<messaggio>" }: se presente, lo si
+// mostra all'utente (es. "servizio temporaneamente sovraccarico, riprova")
+// invece del generico "ha risposto 500".
+async function erroreBackend(path: string, res: Response): Promise<Error> {
+  let dettaglio = "";
+  try {
+    const data = await res.json();
+    if (data && typeof data.detail === "string") dettaglio = data.detail.trim();
+  } catch {
+    // corpo non-JSON o vuoto: si ripiega sul codice di stato.
+  }
+  return new Error(dettaglio || `Backend ${path} ha risposto ${res.status}`);
+}
+
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const base = backendUrl()!;
   const apiKey = backendApiKey();
@@ -111,7 +126,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Backend ${path} ha risposto ${res.status}`);
+    throw await erroreBackend(path, res);
   }
   return (await res.json()) as T;
 }
@@ -127,7 +142,7 @@ async function getJson<T>(path: string): Promise<T> {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Backend ${path} ha risposto ${res.status}`);
+    throw await erroreBackend(path, res);
   }
   return (await res.json()) as T;
 }
