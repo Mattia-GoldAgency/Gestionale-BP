@@ -12,6 +12,7 @@ export function PageTitle() {
   else if (pathname.startsWith("/admin")) title = "Amministrazione";
   else if (pathname.startsWith("/pratica")) title = "Dettaglio Pratica";
   else if (pathname.startsWith("/traduzioni")) title = "Traduzioni e Trascrizioni testo";
+  else if (pathname.startsWith("/rinnovazioni")) title = "Rinnovazioni ipotecarie";
 
   return <h1 className="font-title font-bold text-2xl text-[var(--brand-blue)]">{title}</h1>;
 }

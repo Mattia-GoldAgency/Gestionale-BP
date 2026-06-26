@@ -38,6 +38,13 @@ export const SEZIONI_CONTROLLATE: SezioneApp[] = [
     descrizione: "Servizio di traduzione e trascrizione dei documenti.",
     rotte: ["/traduzioni"],
   },
+  {
+    chiave: "rinnovazioni-ipotecarie",
+    etichetta: "Rinnovazioni ipotecarie",
+    href: "/rinnovazioni",
+    descrizione: "Genera la nota di rinnovazione ipotecaria (XML per SAPES) dai documenti.",
+    rotte: ["/rinnovazioni"],
+  },
 ];
 
 // Tutte le chiavi sezione attualmente esistenti.

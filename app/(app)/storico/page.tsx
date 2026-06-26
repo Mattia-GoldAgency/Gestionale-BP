@@ -13,14 +13,17 @@ const STATO_LABEL: Record<string, string> = {
 };
 
 function TipoBadge({ tipo }: { tipo: string }) {
-  const isTrad = tipo === "traduzione";
+  const etichetta =
+    tipo === "traduzione" ? "Traduzione" : tipo === "rinnovazione" ? "Rinnovazione" : "Mutuo";
+  const cls =
+    tipo === "traduzione"
+      ? "bg-[var(--brand-light)] text-[var(--brand-blue)]"
+      : tipo === "rinnovazione"
+      ? "bg-emerald-50 text-emerald-700"
+      : "bg-gray-100 text-gray-600";
   return (
-    <span
-      className={`text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded ${
-        isTrad ? "bg-[var(--brand-light)] text-[var(--brand-blue)]" : "bg-gray-100 text-gray-600"
-      }`}
-    >
-      {isTrad ? "Traduzione" : "Mutuo"}
+    <span className={`text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded ${cls}`}>
+      {etichetta}
     </span>
   );
 }
@@ -54,21 +57,30 @@ export default async function StoricoPage() {
     <div className="max-w-4xl mx-auto space-y-8">
       <section>
         <p className="text-sm text-gray-500 mb-6">
-          Elenco di tutte le pratiche — mutui e traduzioni — elaborate negli ultimi 15 giorni. Le pratiche più vecchie vengono eliminate automaticamente per motivi di privacy.
+          Elenco di tutte le pratiche — mutui, traduzioni e rinnovazioni — elaborate negli ultimi 15 giorni. Le pratiche più vecchie vengono eliminate automaticamente per motivi di privacy.
         </p>
 
         {pratiche && pratiche.length > 0 ? (
           <ul className="flex flex-col gap-3">
             {(pratiche as Pratica[]).map((p) => {
               const isTrad = p.tipo_pratica === "traduzione";
-              const titolo = isTrad
+              const isRinn = p.tipo_pratica === "rinnovazione";
+              // Traduzioni e rinnovazioni producono un singolo file scaricabile
+              // (niente pagina di dettaglio): la riga è un link di download diretto.
+              const isFile = isTrad || isRinn;
+              const stato = STATO_LABEL[p.stato] ?? p.stato;
+              const titolo = isRinn
+                ? p.nome_file_input || "Nota di rinnovazione"
+                : isTrad
                 ? p.nome_file_input || "Documento tradotto"
                 : p.nome_banca && p.nome_cliente
                 ? `${p.nome_banca} - ${p.nome_cliente}`
                 : p.nome_banca || p.nome_cliente || p.notaio;
-              const sottotitolo = isTrad
-                ? `${(p.lingua_origine || "?").toUpperCase()} → ${(p.lingua_destino || "?").toUpperCase()} · ${STATO_LABEL[p.stato] ?? p.stato}`
-                : `${p.notaio} · Stipula ${p.data_stipula} · ${STATO_LABEL[p.stato] ?? p.stato}`;
+              const sottotitolo = isRinn
+                ? `Rinnovazione ipotecaria · ${stato}`
+                : isTrad
+                ? `${(p.lingua_origine || "?").toUpperCase()} → ${(p.lingua_destino || "?").toUpperCase()} · ${stato}`
+                : `${p.notaio} · Stipula ${p.data_stipula} · ${stato}`;
 
               const interno = (
                 <>
@@ -83,9 +95,9 @@ export default async function StoricoPage() {
                 </>
               );
 
-              // Traduzioni: download diretto del .docx (la rotta esistente vale anche
-              // per loro). Mutui: dettaglio pratica come prima.
-              if (isTrad) {
+              // Traduzioni e rinnovazioni: download diretto del file prodotto (la
+              // rotta esistente vale anche per loro). Mutui: dettaglio pratica come prima.
+              if (isFile) {
                 return (
                   <li key={p.id}>
                     {p.atto_path ? (

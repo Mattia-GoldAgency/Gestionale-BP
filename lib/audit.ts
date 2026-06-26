@@ -10,6 +10,7 @@ export type AzioneAudit =
   | "download_relazione"
   | "upload_traduzione"
   | "download_traduzione_pronta"
+  | "upload_rinnovazione"
   | "elimina_pratica"
   | "retention_purge"
   | "crea_utente"
