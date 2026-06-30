@@ -38,6 +38,13 @@ export const SEZIONI_CONTROLLATE: SezioneApp[] = [
     descrizione: "Servizio di traduzione e trascrizione dei documenti.",
     rotte: ["/traduzioni"],
   },
+  {
+    chiave: "adempimenti-immobiliari",
+    etichetta: "Adempimenti Immobiliari",
+    href: "/adempimenti-immobiliari",
+    descrizione: "Gestione e monitoraggio degli adempimenti immobiliari.",
+    rotte: ["/adempimenti-immobiliari"],
+  },
 ];
 
 // Tutte le chiavi sezione attualmente esistenti.
