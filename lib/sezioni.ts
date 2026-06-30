@@ -42,7 +42,7 @@ export const SEZIONI_CONTROLLATE: SezioneApp[] = [
     chiave: "adempimenti-immobiliari",
     etichetta: "Adempimenti Immobiliari",
     href: "/adempimenti-immobiliari",
-    descrizione: "Gestione e monitoraggio degli adempimenti immobiliari.",
+    descrizione: "Gestione degli adempimenti immobiliari.",
     rotte: ["/adempimenti-immobiliari"],
   },
 ];
