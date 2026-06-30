@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     .select("*")
     .lt("created_at", cutoff)
     .or(
-      "rnp_path.not.is.null,minuta_path.not.is.null,atto_path.not.is.null,input_path.not.is.null"
+      "rnp_path.not.is.null,minuta_path.not.is.null,atto_path.not.is.null,input_path.not.is.null,input_paths.not.is.null"
     )
     .returns<Pratica[]>();
 
@@ -49,15 +49,27 @@ export async function GET(req: NextRequest) {
 
   let purged = 0;
   for (const p of pratiche ?? []) {
-    const docFiles = [p.rnp_path, p.minuta_path, p.input_path].filter(
-      (x): x is string => Boolean(x)
-    );
-    if (docFiles.length) await admin.storage.from(BUCKET_DOCUMENTI).remove(docFiles);
+    // input_paths (rinnovazioni: perimetro + nota + visure) oltre ai path singoli.
+    const docFiles = [
+      p.rnp_path,
+      p.minuta_path,
+      p.input_path,
+      ...(p.input_paths ?? []),
+    ].filter((x): x is string => Boolean(x));
+    // De-duplica: input_path è di norma incluso anche in input_paths.
+    const docUnici = Array.from(new Set(docFiles));
+    if (docUnici.length) await admin.storage.from(BUCKET_DOCUMENTI).remove(docUnici);
     if (p.atto_path) await admin.storage.from(BUCKET_ATTI).remove([p.atto_path]);
 
     await admin
       .from("pratiche")
-      .update({ rnp_path: null, minuta_path: null, atto_path: null, input_path: null })
+      .update({
+        rnp_path: null,
+        minuta_path: null,
+        atto_path: null,
+        input_path: null,
+        input_paths: null,
+      })
       .eq("id", p.id);
     purged++;
   }

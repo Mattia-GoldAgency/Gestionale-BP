@@ -222,6 +222,60 @@ export async function statoTraduzione(jobId: string): Promise<StatoTraduzione> {
 }
 
 // ---------------------------------------------------------------------------
+// Modulo Rinnovazioni ipotecarie — endpoint ASINCRONO (job + polling), multi-file.
+//   - POST /api/rinnovazioni          -> avvia il job, risponde {jobId, stato:"in_corso"}.
+//   - GET  /api/rinnovazioni/{jobId}  -> stato/progresso; a fine job xmlBase64 + report.
+// Input multi-file: 1 perimetro Word + 1 nota PDF + N visure PDF (URL firmati Supabase),
+// più i campi di testata/anagrafica non estraibili dai documenti. Gemello del modulo
+// Traduzioni: stesso schema job/polling, output = XML SAPES (re-importabile) anziché .docx.
+// ---------------------------------------------------------------------------
+export interface InputRinnovazione {
+  praticaId: string;
+  // Documenti (URL firmati Supabase) + nomi originali (per dedurre l'estensione)
+  perimetroUrl: string;
+  nomePerimetro?: string | null;
+  notaUrl: string;
+  nomeNota?: string | null;
+  visureUrls: string[];
+  nomiVisure: string[];
+  // Campi di form (non estraibili dai documenti). Richiedente: sempre presente
+  // per le rinnovazioni, ma opzionale lato SAPES. Residenze, progressivi e i flag
+  // esente/rinuncia non si chiedono qui (residenze dalla nota; il resto è inerte).
+  denominazioneRichiedente?: string | null;
+  cfRichiedente?: string | null;
+  indirizzoRichiedente?: string | null;
+  agevolazioni?: string[];
+}
+
+export interface StatoRinnovazione {
+  jobId: string;
+  stato: "in_corso" | "completato" | "errore";
+  progresso: number;
+  fase?: string | null;
+  xmlBase64?: string | null;
+  nomeFile?: string | null;
+  semaforo?: string | null; // "verde" | "giallo" | "rosso"
+  report?: Record<string, unknown> | null; // conteggi + avvisi (no PII)
+  errore?: string | null;
+}
+
+export async function avviaRinnovazione(input: InputRinnovazione): Promise<StatoRinnovazione> {
+  if (!backendUrl()) return mockRinnovazione(input);
+  return postJson<StatoRinnovazione>("/api/rinnovazioni", input);
+}
+
+// Polling dello stato di un job di rinnovazione. A job concluso la risposta porta
+// xmlBase64 + report; mentre è in corso porta progresso/fase. Attenzione: il
+// semaforo "rosso" è un esito completato SENZA xmlBase64 (manca un dato bloccante),
+// non un job ancora in corso.
+export async function statoRinnovazione(jobId: string): Promise<StatoRinnovazione> {
+  if (!backendUrl()) {
+    return { jobId, stato: "completato", progresso: 100, fase: "Completato" };
+  }
+  return getJson<StatoRinnovazione>(`/api/rinnovazioni/${encodeURIComponent(jobId)}`);
+}
+
+// ---------------------------------------------------------------------------
 // MOCK (solo quando BACKEND_URL non è impostato) — utile per testare la UI.
 // ---------------------------------------------------------------------------
 function mockEstrazione(): RisultatoEstrazione {
@@ -291,5 +345,31 @@ async function mockTraduzione(input: InputTraduzione): Promise<StatoTraduzione> 
     linguaOrigineRilevata: "inglese",
     report: { qualita: { semaforo: "giallo" }, mock: true },
     memoriaNuova: [],
+  };
+}
+
+async function mockRinnovazione(input: InputRinnovazione): Promise<StatoRinnovazione> {
+  // Senza backend, restituisce subito un XML segnaposto (ISO-8859-1 come SAPES).
+  const xml =
+    '<?xml version="1.0" encoding="ISO-8859-1"?>\n' +
+    "<!-- ANTEPRIMA MOCK: backend non configurato (BACKEND_URL assente). " +
+    "Il motore reale produrra' l'XML SAPES re-importabile. -->\n" +
+    "<AdempimentoUnico/>";
+  return {
+    jobId: `mock-${input.praticaId}`,
+    stato: "completato",
+    progresso: 100,
+    fase: "Completato",
+    xmlBase64: Buffer.from(xml, "latin1").toString("base64"),
+    nomeFile: `rinnovazione-mock-${input.praticaId}.xml`,
+    semaforo: "giallo",
+    report: {
+      n_immobili: 0,
+      n_unita: 0,
+      n_soggetti: 0,
+      n_superfici_iniettate: 0,
+      qualita: { semaforo: "giallo", campi_mancanti: 0, avvisi: 1 },
+      mock: true,
+    },
   };
 }

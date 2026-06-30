@@ -7,8 +7,9 @@ export type StatoPratica =
   | "errore";
 
 // Tipo di pratica: i mutui e (dal modulo Traduzioni) le traduzioni condividono la
-// stessa tabella e lo stesso storico.
-export type TipoPratica = "mutuo" | "traduzione";
+// stessa tabella e lo stesso storico. Dal modulo Rinnovazioni anche le rinnovazioni
+// ipotecarie (output = XML SAPES, salvato come "atto").
+export type TipoPratica = "mutuo" | "traduzione" | "rinnovazione";
 
 export type FormatoTraduzione =
   | "solo_trascrizione"
@@ -53,6 +54,11 @@ export interface Pratica {
   job_id: string | null;
   input_path: string | null;
   nome_file_input: string | null;
+  // Modulo Rinnovazioni: una pratica ha PIÙ input (perimetro + nota + N visure).
+  // input_paths li elenca tutti (bucket "documenti") per la retention; input_path
+  // resta il documento principale (il perimetro) per il titolo nello storico.
+  // Null per mutui/traduzioni (un solo input): nessuna regressione.
+  input_paths: string[] | null;
 }
 
 export interface VoceGlossario {
@@ -72,7 +78,11 @@ export const BUCKET_ATTI = "atti";
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-// MIME corretto in base all'estensione del file dell'atto.
+// MIME corretto in base all'estensione del file dell'atto. Gli atti di mutuo e le
+// traduzioni sono Word (.docx/.doc); le rinnovazioni sono XML SAPES (.xml).
 export function mimePerFile(nome: string): string {
-  return nome.toLowerCase().endsWith(".docx") ? DOCX_MIME : "application/msword";
+  const n = nome.toLowerCase();
+  if (n.endsWith(".xml")) return "application/xml";
+  if (n.endsWith(".docx")) return DOCX_MIME;
+  return "application/msword";
 }

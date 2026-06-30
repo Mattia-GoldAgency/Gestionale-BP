@@ -39,11 +39,15 @@ export const SEZIONI_CONTROLLATE: SezioneApp[] = [
     rotte: ["/traduzioni"],
   },
   {
+    // Hub "Adempimenti Immobiliari": contiene lo strumento Rinnovazioni
+    // ipotecarie (e in futuro altri modelli telematici, es. Modello Unico). Le
+    // rotte coprono sia l'hub sia lo strumento /rinnovazioni, protetti dallo
+    // stesso permesso (stesso schema di "Scrittura atti" -> /mutui).
     chiave: "adempimenti-immobiliari",
     etichetta: "Adempimenti Immobiliari",
     href: "/adempimenti-immobiliari",
     descrizione: "Gestione degli adempimenti immobiliari.",
-    rotte: ["/adempimenti-immobiliari"],
+    rotte: ["/adempimenti-immobiliari", "/rinnovazioni"],
   },
 ];
 
