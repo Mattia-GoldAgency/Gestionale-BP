@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { avviaRinnovazione, finalizzaRinnovazione, type AvviaState } from "./actions";
 import { FileDrop } from "./file-drop";
 import { AGEVOLAZIONI, AGEVOLAZIONI_DEFAULT } from "@/lib/agevolazioni";
+import type { RigaReport } from "./report-docx";
 
 const ACCEPT_PERIMETRO = ".doc,.docx";
 const ACCEPT_PDF = ".pdf";
@@ -24,12 +25,151 @@ function asNum(v: unknown): number | null {
   return typeof v === "number" && isFinite(v) ? v : null;
 }
 
+// Stima del costo di elaborazione (come nel modulo Traduzioni). Per le rinnovazioni
+// è quasi sempre $0.00 perché la pipeline è deterministica (Claude entra solo come
+// OCR sulle note scansionate): il backend lo restituisce comunque in costo_usd_stimato.
+function costoStimato(report: Record<string, unknown> | null): string | null {
+  if (!report) return null;
+  const c = report.costo_usd_stimato;
+  if (typeof c !== "number" || !isFinite(c)) return null;
+  return `$${c.toFixed(2)}`;
+}
+
+// Animazione di caricamento: una penna che "scrive" il documento mentre la barra
+// avanza. Pura SVG/CSS, nessuna dipendenza; rispetta prefers-reduced-motion.
+function PennaAnimata() {
+  return (
+    <div className="flex justify-center" aria-hidden="true">
+      <svg width="208" height="72" viewBox="0 0 208 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* foglio */}
+        <rect x="40" y="8" width="128" height="56" rx="5" fill="#f8fafc" stroke="var(--brand-gray)" strokeWidth="1.5" />
+        {/* righe già scritte (statiche) */}
+        <line x1="54" y1="24" x2="150" y2="24" stroke="#cbd5e1" strokeWidth="3" strokeLinecap="round" />
+        <line x1="54" y1="36" x2="134" y2="36" stroke="#e2e8f0" strokeWidth="3" strokeLinecap="round" />
+        {/* riga che viene "scritta" */}
+        <line
+          className="rnv-riga"
+          x1="54"
+          y1="50"
+          x2="148"
+          y2="50"
+          stroke="var(--brand-blue)"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        {/* penna che segue la scrittura */}
+        <g className="rnv-penna">
+          <path d="M4 18 L18 4 L22 8 L8 22 Z" fill="var(--brand-blue)" />
+          <path d="M4 18 L8 22 L2 24 Z" fill="#1f2937" />
+        </g>
+      </svg>
+      <style>{`
+        .rnv-riga {
+          stroke-dasharray: 100;
+          stroke-dashoffset: 100;
+          animation: rnvScrivi 2.1s ease-in-out infinite;
+        }
+        .rnv-penna { animation: rnvMuovi 2.1s ease-in-out infinite; }
+        @keyframes rnvScrivi {
+          0%   { stroke-dashoffset: 100; }
+          55%  { stroke-dashoffset: 0; }
+          100% { stroke-dashoffset: 0; }
+        }
+        @keyframes rnvMuovi {
+          0%   { transform: translate(52px, 26px); }
+          55%  { transform: translate(146px, 26px); }
+          72%  { transform: translate(146px, 26px); }
+          100% { transform: translate(52px, 26px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .rnv-riga, .rnv-penna { animation: none; }
+          .rnv-riga { stroke-dashoffset: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Costruisce e scarica il "report" .docx accanto all'XML: stesso contenuto del
+// riquadro avvisi (riepilogo + note), in un documento Word leggero e leggibile.
+async function scaricaReport(opts: {
+  report: Record<string, unknown>;
+  semaforo: string | null;
+  nomeXml: string | null;
+}): Promise<void> {
+  const { report, semaforo, nomeXml } = opts;
+  const oggi = new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
+
+  const righe: RigaReport[] = [
+    { testo: "Report di rinnovazione ipotecaria", stile: "titolo" },
+    { testo: `Generato il ${oggi}${nomeXml ? ` · file XML: ${nomeXml}` : ""}`, stile: "sottotitolo" },
+  ];
+
+  if (semaforo) {
+    righe.push({ testo: `Controllo qualità: ${semaforo.toUpperCase()}`, stile: "sezione" });
+    righe.push({
+      testo:
+        semaforo === "verde"
+          ? "XML generato senza avvisi."
+          : semaforo === "giallo"
+          ? "XML generato, con avvisi da verificare (vedi sotto)."
+          : "Dato obbligatorio mancante: XML non generato.",
+      stile: "normale",
+    });
+  }
+
+  const costo = costoStimato(report);
+  if (costo) righe.push({ testo: `Costo di elaborazione stimato: ${costo}`, stile: "normale" });
+
+  righe.push({ testo: "", stile: "spazio" });
+  righe.push({ testo: "Riepilogo estratto", stile: "sezione" });
+  const conteggi: [string, number | null][] = [
+    ["Immobili", asNum(report.n_immobili)],
+    ["Unità negoziali", asNum(report.n_unita)],
+    ["Soggetti", asNum(report.n_soggetti)],
+  ];
+  for (const [label, v] of conteggi) if (v !== null) righe.push({ testo: `${label}: ${v}`, stile: "voce" });
+
+  const sezioniAvvisi: [string, string[]][] = [
+    ["Immobili senza superficie (visura mancante o subalterni non coperti)", asStringList(report.incrocio)],
+    ["Dati da confermare", asStringList(report.campi_incerti)],
+    ["Note sul perimetro (indirizzi abbreviati, diritto ereditato)", asStringList(report.avvisi_perimetro)],
+    ["Campi obbligatori mancanti", asStringList(report.campi_mancanti)],
+    ["Righe immobile non lette dal perimetro", asStringList(report.errori_perimetro)],
+  ];
+  const conAvvisi = sezioniAvvisi.filter(([, v]) => v.length);
+  if (conAvvisi.length) {
+    righe.push({ testo: "", stile: "spazio" });
+    righe.push({ testo: "Avvisi e note", stile: "sezione" });
+    for (const [titolo, voci] of conAvvisi) {
+      righe.push({ testo: titolo, stile: "normale" });
+      for (const v of voci.slice(0, 60)) righe.push({ testo: v, stile: "voce" });
+    }
+  }
+
+  righe.push({ testo: "", stile: "spazio" });
+  righe.push({ testo: "Importa l'XML in SAPES. Documento di riepilogo generato dal Gestionale B&P.", stile: "sottotitolo" });
+
+  const { buildReportDocx } = await import("./report-docx");
+  const blob = await buildReportDocx(righe);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeXml ? `${nomeXml.replace(/\.xml$/i, "")}-report.docx` : "report-rinnovazione.docx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // Riquadro avvisi/elenco (scoperti, campi incerti, blocchi). Niente se vuoto.
-function ElencoAvvisi({ titolo, voci, tono }: { titolo: string; voci: string[]; tono: "giallo" | "rosso" }) {
+function ElencoAvvisi({ titolo, voci, tono }: { titolo: string; voci: string[]; tono: "verde" | "giallo" | "rosso" }) {
   if (!voci.length) return null;
   const cls =
     tono === "rosso"
       ? "bg-red-50 border-red-200 text-red-800"
+      : tono === "verde"
+      ? "bg-green-50 border-green-200 text-green-800"
       : "bg-amber-50 border-amber-200 text-amber-800";
   return (
     <div className={`text-left text-xs rounded border px-3 py-2 ${cls}`}>
@@ -48,16 +188,14 @@ function Conteggi({ report }: { report: Record<string, unknown> }) {
   const nImm = asNum(report.n_immobili);
   const nUnita = asNum(report.n_unita);
   const nSogg = asNum(report.n_soggetti);
-  const nSup = asNum(report.n_superfici_iniettate);
   const voci: { label: string; value: number | null }[] = [
     { label: "Immobili", value: nImm },
     { label: "Unità negoziali", value: nUnita },
     { label: "Soggetti", value: nSogg },
-    { label: "Superfici inserite", value: nSup },
   ].filter((x) => x.value !== null);
   if (!voci.length) return null;
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-md">
+    <div className="grid grid-cols-3 gap-3 w-full max-w-md">
       {voci.map((v) => (
         <div key={v.label} className="rounded bg-gray-50 border border-gray-100 px-3 py-2 text-center">
           <div className="text-lg font-semibold text-[var(--brand-blue)]">{v.value}</div>
@@ -79,6 +217,7 @@ export function RinnovazioniForm() {
   const [progresso, setProgresso] = useState(0);
   const [faseLabel, setFaseLabel] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [nomeFile, setNomeFile] = useState<string | null>(null);
   const [semaforo, setSemaforo] = useState<string | null>(null);
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
   const [bloccante, setBloccante] = useState<string | null>(null);
@@ -103,6 +242,7 @@ export function RinnovazioniForm() {
       // Path mock (nessun backend): esito già pronto (download o blocco rosso).
       if (avvio.downloadUrl || avvio.bloccante || avvio.semaforo === "rosso") {
         setDownloadUrl(avvio.downloadUrl ?? null);
+        setNomeFile(avvio.nomeFile ?? null);
         setSemaforo(avvio.semaforo ?? null);
         setReport(avvio.report ?? null);
         setBloccante(avvio.bloccante ?? null);
@@ -172,6 +312,7 @@ export function RinnovazioniForm() {
             return;
           }
           setDownloadUrl(fin.downloadUrl ?? null);
+          setNomeFile(fin.nomeFile ?? null);
           setSemaforo(fin.semaforo ?? null);
           setReport(fin.report ?? null);
           setBloccante(fin.bloccante ?? null);
@@ -232,6 +373,7 @@ export function RinnovazioniForm() {
     }
 
     const colore = semaforo === "verde" ? "#16a34a" : "#d97706";
+    const costo = costoStimato(rep);
     return (
       <div className="flex flex-col items-center text-center gap-4 py-6">
         <div className="text-2xl font-title font-semibold text-[var(--brand-blue)]">
@@ -243,22 +385,33 @@ export function RinnovazioniForm() {
             {semaforo === "giallo" ? " — XML generato, ma con avvisi da verificare." : null}
           </p>
         ) : null}
+        {costo ? (
+          <p className="text-xs text-gray-500">Costo di elaborazione stimato: {costo}</p>
+        ) : null}
 
         <Conteggi report={rep} />
 
         <div className="w-full max-w-md flex flex-col gap-2">
           <ElencoAvvisi titolo="Immobili senza superficie (visura mancante o subalterni non coperti)" voci={scoperti} tono="giallo" />
           <ElencoAvvisi titolo="Dati da confermare" voci={incerti} tono="giallo" />
-          <ElencoAvvisi titolo="Note sul perimetro (indirizzi abbreviati, diritto ereditato)" voci={avvisiPerimetro} tono="giallo" />
+          {/* Verde: non è un alert da controllare, ma segnala gli adattamenti fatti per il corretto caricamento dell'XML. */}
+          <ElencoAvvisi titolo="Note sul perimetro (indirizzi abbreviati, diritto ereditato)" voci={avvisiPerimetro} tono="verde" />
         </div>
 
-        <div className="flex items-center gap-3 mt-1">
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-1">
           <a
             href={downloadUrl}
             className="bg-[var(--brand-blue)] text-white font-medium py-2 px-6 rounded hover:bg-opacity-90 transition-colors shadow-sm"
           >
             Scarica l&apos;XML
           </a>
+          <button
+            type="button"
+            onClick={() => void scaricaReport({ report: rep, semaforo, nomeXml: nomeFile })}
+            className="border border-[var(--brand-blue)] text-[var(--brand-blue)] font-medium py-2 px-6 rounded hover:bg-gray-50 transition-colors"
+          >
+            Scarica il report
+          </button>
           <button
             onClick={() => window.location.reload()}
             className="text-sm text-[var(--brand-blue)] underline"
@@ -267,7 +420,7 @@ export function RinnovazioniForm() {
           </button>
         </div>
         <p className="text-xs text-gray-500">
-          Importa l&apos;XML in SAPES. Disponibile al download per 15 giorni.
+          Importa l&apos;XML in SAPES. Il report Word riepiloga avvisi e note. XML disponibile al download per 15 giorni.
         </p>
       </div>
     );
@@ -303,8 +456,8 @@ export function RinnovazioniForm() {
         : "Caricamento dei documenti e avvio…";
     return (
       <div className="flex flex-col gap-4 py-8 max-w-md mx-auto">
+        <PennaAnimata />
         <div className="flex items-center gap-3">
-          <span className="inline-block w-4 h-4 border-2 border-[var(--brand-gray)] border-t-[var(--brand-blue)] rounded-full animate-spin" />
           <span className="text-sm text-gray-600">{label}</span>
           {fase === "polling" ? (
             <span className="text-sm text-gray-400 ml-auto">{pct}%</span>

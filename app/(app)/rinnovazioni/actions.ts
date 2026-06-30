@@ -23,6 +23,7 @@ export interface AvviaState {
   praticaId?: string;
   // Completamento immediato (path mock, senza BACKEND_URL).
   downloadUrl?: string;
+  nomeFile?: string;
   semaforo?: string;
   report?: Record<string, unknown>;
   bloccante?: string;
@@ -33,6 +34,7 @@ export interface FinalizzaResult {
   error?: string; // fallimento grave (job in errore / salvataggio fallito)
   pending?: boolean; // job ancora in corso (il client continua il polling)
   downloadUrl?: string;
+  nomeFile?: string;
   semaforo?: string;
   report?: Record<string, unknown>;
   // Semaforo rosso: job completato ma SENZA XML (manca un dato bloccante). Non è
@@ -42,6 +44,20 @@ export interface FinalizzaResult {
 
 function sanitize(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+}
+
+// Nome del file XML scaricato (scelta operativa 2026-06-30): derivato dal nome
+// originale del perimetro caricato → "rinnovazione-<nome perimetro>.xml", così è
+// riconoscibile dall'operatore. Toglie l'estensione e sanifica per filesystem/header.
+function nomeXmlDaPerimetro(nomePerimetro: string | null | undefined, fallback: string): string {
+  if (!nomePerimetro) return fallback;
+  const stem = nomePerimetro.replace(/\.[^.\\/]+$/, ""); // via l'estensione
+  const pulito = stem
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^[_.-]+|[_.-]+$/g, "")
+    .slice(0, 80);
+  return pulito ? `rinnovazione-${pulito}.xml` : fallback;
 }
 
 function oggiISO(): string {
@@ -172,7 +188,7 @@ export async function avviaRinnovazione(
       supabase, user, praticaId, perim.path, perimetro.name, inputPaths, esito
     );
     if (fin.error) return { error: fin.error };
-    return { downloadUrl: fin.downloadUrl, semaforo: fin.semaforo, report: fin.report, bloccante: fin.bloccante };
+    return { downloadUrl: fin.downloadUrl, nomeFile: fin.nomeFile, semaforo: fin.semaforo, report: fin.report, bloccante: fin.bloccante };
   }
 
   // Path normale: job in background. Registra la pratica in elaborazione.
@@ -243,8 +259,18 @@ export async function finalizzaRinnovazione(
     return { semaforo: "rosso", report, bloccante: stato.errore ?? "Dato obbligatorio mancante." };
   }
 
-  // Completato con XML: salva l'output e aggiorna la pratica.
-  const nomeFile = stato.nomeFile ?? `rinnovazione_${praticaId}.xml`;
+  // Completato con XML: salva l'output e aggiorna la pratica. Il nome del file è
+  // derivato dal nome originale del perimetro (salvato come nome_file_input all'avvio).
+  const { data: praticaRow } = await supabase
+    .from("pratiche")
+    .select("nome_file_input")
+    .eq("id", praticaId)
+    .eq("user_id", user.id)
+    .single<{ nome_file_input: string | null }>();
+  const nomeFile = nomeXmlDaPerimetro(
+    praticaRow?.nome_file_input,
+    stato.nomeFile ?? `rinnovazione-${praticaId.slice(0, 8)}.xml`
+  );
   const attoPath = `${user.id}/${praticaId}/output-${sanitize(nomeFile)}`;
   const bytes = Buffer.from(stato.xmlBase64, "base64");
   const upOut = await supabase.storage
@@ -275,7 +301,7 @@ export async function finalizzaRinnovazione(
   });
 
   revalidatePath("/storico");
-  return { downloadUrl: `/api/pratica/${praticaId}/download`, semaforo, report };
+  return { downloadUrl: `/api/pratica/${praticaId}/download`, nomeFile, semaforo, report };
 }
 
 // Salvataggio dell'esito quando l'XML è già disponibile (path mock, senza backend).
@@ -317,7 +343,10 @@ async function salvaEsito(
     return { semaforo: "rosso", report, bloccante: esito.errore ?? "Dato obbligatorio mancante." };
   }
 
-  const nomeFile = esito.nomeFile ?? `rinnovazione_${praticaId}.xml`;
+  const nomeFile = nomeXmlDaPerimetro(
+    nomeFileInput,
+    esito.nomeFile ?? `rinnovazione-${praticaId.slice(0, 8)}.xml`
+  );
   const attoPath = `${user.id}/${praticaId}/output-${sanitize(nomeFile)}`;
   const bytes = Buffer.from(esito.xmlBase64, "base64");
   const upOut = await supabase.storage
@@ -343,7 +372,7 @@ async function salvaEsito(
   if (insert.error) return { error: `Salvataggio pratica fallito: ${insert.error.message}` };
 
   revalidatePath("/storico");
-  return { downloadUrl: `/api/pratica/${praticaId}/download`, semaforo, report };
+  return { downloadUrl: `/api/pratica/${praticaId}/download`, nomeFile, semaforo, report };
 }
 
 async function registraErrore(
