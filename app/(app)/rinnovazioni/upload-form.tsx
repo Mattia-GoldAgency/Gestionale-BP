@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { avviaRinnovazione, finalizzaRinnovazione, type AvviaState } from "./actions";
+import { FileDrop } from "./file-drop";
+import { AGEVOLAZIONI, AGEVOLAZIONI_DEFAULT } from "@/lib/agevolazioni";
 
 const ACCEPT_PERIMETRO = ".doc,.docx";
 const ACCEPT_PDF = ".pdf";
@@ -328,82 +330,56 @@ export function RinnovazioniForm() {
       {/* Sinistra: i tre documenti */}
       <div className="flex flex-col gap-5">
         {/* Perimetro (Word) */}
-        <div className="flex flex-col">
-          <label className="label" htmlFor="perimetro">
-            Perimetro ipotecario <span className="text-gray-400 font-normal">(Word, Team Visure)</span>
-          </label>
-          <label
-            htmlFor="perimetro"
-            className="border-2 border-dashed border-[var(--brand-gray)] rounded-lg flex flex-col items-center justify-center text-center px-4 py-6 cursor-pointer hover:border-[var(--brand-blue)] transition-colors bg-gray-50"
-          >
-            <span className="text-sm text-[var(--brand-blue)] font-medium">
-              {perimetroName ?? "Trascina qui il perimetro o sfoglia"}
-            </span>
-            <span className="text-xs text-gray-500 mt-1">DOC, DOCX</span>
-          </label>
-          <input
-            id="perimetro"
-            name="perimetro"
-            type="file"
-            required
-            accept={ACCEPT_PERIMETRO}
-            className="hidden"
-            onChange={(e) => setPerimetroName(e.target.files?.[0]?.name ?? null)}
-          />
-        </div>
+        <FileDrop
+          id="perimetro"
+          name="perimetro"
+          required
+          accept={ACCEPT_PERIMETRO}
+          label={
+            <>
+              Perimetro ipotecario <span className="text-gray-400 font-normal">(Word, Team Visure)</span>
+            </>
+          }
+          boxText={perimetroName ?? "Trascina qui il perimetro o sfoglia"}
+          boxHint="DOC, DOCX"
+          onFiles={(files) => setPerimetroName(files[0]?.name ?? null)}
+        />
 
         {/* Nota originaria (PDF) */}
-        <div className="flex flex-col">
-          <label className="label" htmlFor="nota">
-            Nota di iscrizione originaria <span className="text-gray-400 font-normal">(PDF)</span>
-          </label>
-          <label
-            htmlFor="nota"
-            className="border-2 border-dashed border-[var(--brand-gray)] rounded-lg flex flex-col items-center justify-center text-center px-4 py-6 cursor-pointer hover:border-[var(--brand-blue)] transition-colors bg-gray-50"
-          >
-            <span className="text-sm text-[var(--brand-blue)] font-medium">
-              {notaName ?? "Trascina qui la nota o sfoglia"}
-            </span>
-            <span className="text-xs text-gray-500 mt-1">PDF (ispezione AdE)</span>
-          </label>
-          <input
-            id="nota"
-            name="nota"
-            type="file"
-            required
-            accept={ACCEPT_PDF}
-            className="hidden"
-            onChange={(e) => setNotaName(e.target.files?.[0]?.name ?? null)}
-          />
-        </div>
+        <FileDrop
+          id="nota"
+          name="nota"
+          required
+          accept={ACCEPT_PDF}
+          label={
+            <>
+              Nota di iscrizione originaria <span className="text-gray-400 font-normal">(PDF)</span>
+            </>
+          }
+          boxText={notaName ?? "Trascina qui la nota o sfoglia"}
+          boxHint="PDF (ispezione AdE)"
+          onFiles={(files) => setNotaName(files[0]?.name ?? null)}
+        />
 
         {/* Visure (PDF, multiple) */}
-        <div className="flex flex-col">
-          <label className="label" htmlFor="visure">
-            Visure catastali <span className="text-gray-400 font-normal">(PDF, una o più)</span>
-          </label>
-          <label
-            htmlFor="visure"
-            className="border-2 border-dashed border-[var(--brand-gray)] rounded-lg flex flex-col items-center justify-center text-center px-4 py-6 cursor-pointer hover:border-[var(--brand-blue)] transition-colors bg-gray-50"
-          >
-            <span className="text-sm text-[var(--brand-blue)] font-medium">
-              {visureNames.length
-                ? `${visureNames.length} visura${visureNames.length > 1 ? "e" : ""} selezionata${visureNames.length > 1 ? "e" : ""}`
-                : "Trascina qui le visure o sfoglia"}
-            </span>
-            <span className="text-xs text-gray-500 mt-1">
-              Senza visure le superfici restano da inserire (avviso giallo, non bloccante).
-            </span>
-          </label>
-          <input
-            id="visure"
-            name="visure"
-            type="file"
-            multiple
-            accept={ACCEPT_PDF}
-            className="hidden"
-            onChange={(e) => setVisureNames(Array.from(e.target.files ?? []).map((f) => f.name))}
-          />
+        <FileDrop
+          id="visure"
+          name="visure"
+          multiple
+          accept={ACCEPT_PDF}
+          label={
+            <>
+              Visure catastali <span className="text-gray-400 font-normal">(PDF, una o più)</span>
+            </>
+          }
+          boxText={
+            visureNames.length
+              ? `${visureNames.length} visura${visureNames.length > 1 ? "e" : ""} selezionata${visureNames.length > 1 ? "e" : ""}`
+              : "Trascina qui le visure o sfoglia"
+          }
+          boxHint="Senza visure le superfici restano da inserire (avviso giallo, non bloccante)."
+          onFiles={(files) => setVisureNames(files.map((f) => f.name))}
+        >
           {visureNames.length ? (
             <ul className="text-xs text-gray-500 mt-2 list-disc list-inside max-h-24 overflow-auto">
               {visureNames.map((n, i) => (
@@ -411,97 +387,57 @@ export function RinnovazioniForm() {
               ))}
             </ul>
           ) : null}
-        </div>
+        </FileDrop>
       </div>
 
-      {/* Destra: dati di testata + opzionali */}
+      {/* Destra: agevolazioni + richiedente */}
       <div className="flex flex-col gap-5">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="label" htmlFor="progressivo_invio">
-              Progressivo invio
-            </label>
-            <input id="progressivo_invio" name="progressivo_invio" className="input" placeholder="es. 001" />
-          </div>
-          <div>
-            <label className="label" htmlFor="progressivo_convenzione">
-              Progressivo convenzione
-            </label>
-            <input
-              id="progressivo_convenzione"
-              name="progressivo_convenzione"
-              className="input"
-              defaultValue="1"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="label" htmlFor="agevolazioni">
-            Agevolazioni <span className="text-gray-400 font-normal">(codici, separati da spazio)</span>
-          </label>
-          <input id="agevolazioni" name="agevolazioni" className="input" defaultValue="8 9" />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" name="atto_esente_registrazione" value="1" />
-            <span>Atto esente da registrazione</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" name="rinuncia_ipoteca_legale" value="1" />
-            <span>Rinuncia all&apos;ipoteca legale</span>
-          </label>
-        </div>
-
-        {/* Dati opzionali: richiedente + residenze (non nel catasto) */}
-        <details className="border border-[var(--brand-gray)] rounded">
-          <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-[var(--brand-blue)] select-none">
-            Dati opzionali (richiedente e residenze)
-          </summary>
-          <div className="px-3 pb-3 pt-1 flex flex-col gap-3">
-            <div>
-              <label className="label" htmlFor="denominazione_richiedente">
-                Denominazione richiedente
+        <fieldset className="flex flex-col gap-2">
+          <legend className="label">
+            Agevolazioni <span className="text-gray-400 font-normal">(una o più)</span>
+          </legend>
+          <div className="flex flex-col gap-1.5 border border-[var(--brand-gray)] rounded px-3 py-2">
+            {AGEVOLAZIONI.map((a) => (
+              <label key={a.codice} className="flex items-start gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="agevolazioni"
+                  value={a.codice}
+                  defaultChecked={AGEVOLAZIONI_DEFAULT.includes(a.codice)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-medium">{a.codice}</span> — {a.descrizione}
+                </span>
               </label>
-              <input id="denominazione_richiedente" name="denominazione_richiedente" className="input" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label" htmlFor="cf_richiedente">
-                  CF / P.IVA richiedente
-                </label>
-                <input id="cf_richiedente" name="cf_richiedente" className="input" />
-              </div>
-              <div>
-                <label className="label" htmlFor="indirizzo_richiedente">
-                  Indirizzo richiedente
-                </label>
-                <input id="indirizzo_richiedente" name="indirizzo_richiedente" className="input" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label" htmlFor="contro_residenza_indirizzo">
-                  Residenza &quot;Contro&quot; — indirizzo
-                </label>
-                <input id="contro_residenza_indirizzo" name="contro_residenza_indirizzo" className="input" />
-              </div>
-              <div>
-                <label className="label" htmlFor="contro_residenza_cap">
-                  Residenza &quot;Contro&quot; — CAP
-                </label>
-                <input id="contro_residenza_cap" name="contro_residenza_cap" className="input" />
-              </div>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Richiedente: per le rinnovazioni è sempre presente (visibile, non obbligatorio) */}
+        <div className="flex flex-col gap-3">
+          <p className="label">Richiedente</p>
+          <div>
+            <label className="label" htmlFor="denominazione_richiedente">
+              Denominazione richiedente
+            </label>
+            <input id="denominazione_richiedente" name="denominazione_richiedente" className="input" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label" htmlFor="cf_richiedente">
+                CF / P.IVA richiedente
+              </label>
+              <input id="cf_richiedente" name="cf_richiedente" className="input" />
             </div>
             <div>
-              <label className="label" htmlFor="favore_residenza_cap">
-                Residenza &quot;Favore&quot; (banca) — CAP
+              <label className="label" htmlFor="indirizzo_richiedente">
+                Indirizzo richiedente
               </label>
-              <input id="favore_residenza_cap" name="favore_residenza_cap" className="input" />
+              <input id="indirizzo_richiedente" name="indirizzo_richiedente" className="input" />
             </div>
           </div>
-        </details>
+        </div>
 
         {avvio.error ? <p className="field-error">{avvio.error}</p> : null}
 

@@ -53,14 +53,9 @@ function str(formData: FormData, k: string): string | null {
   return v || null;
 }
 
-function flag(formData: FormData, k: string): string {
-  // checkbox -> "1" se selezionata, "0" altrimenti.
-  return formData.get(k) ? "1" : "0";
-}
-
-function parseAgevolazioni(raw: string | null): string[] {
-  if (!raw) return ["8", "9"];
-  const codici = raw.split(/[^0-9]+/).filter(Boolean);
+function parseAgevolazioni(raw: FormDataEntryValue[]): string[] {
+  // Checkbox multiple name="agevolazioni": tiene i codici numerici selezionati.
+  const codici = raw.map((v) => String(v).trim()).filter((v) => /^\d+$/.test(v));
   return codici.length ? codici : ["8", "9"];
 }
 
@@ -149,17 +144,10 @@ export async function avviaRinnovazione(
     nomeNota: nota.name,
     visureUrls,
     nomiVisure,
-    progressivoInvio: str(formData, "progressivo_invio"),
-    progressivoConvenzione: str(formData, "progressivo_convenzione") || "1",
     denominazioneRichiedente: str(formData, "denominazione_richiedente"),
     cfRichiedente: str(formData, "cf_richiedente"),
     indirizzoRichiedente: str(formData, "indirizzo_richiedente"),
-    attoEsenteRegistrazione: flag(formData, "atto_esente_registrazione"),
-    rinunciaIpotecaLegale: flag(formData, "rinuncia_ipoteca_legale"),
-    agevolazioni: parseAgevolazioni(str(formData, "agevolazioni")),
-    controResidenzaIndirizzo: str(formData, "contro_residenza_indirizzo"),
-    controResidenzaCap: str(formData, "contro_residenza_cap"),
-    favoreResidenzaCap: str(formData, "favore_residenza_cap"),
+    agevolazioni: parseAgevolazioni(formData.getAll("agevolazioni")),
   };
 
   // Avvio del job sul backend.

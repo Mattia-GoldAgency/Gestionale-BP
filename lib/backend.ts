@@ -235,19 +235,13 @@ export interface InputRinnovazione {
   nomeNota?: string | null;
   visureUrls: string[];
   nomiVisure: string[];
-  // Campi di form (non estraibili dai documenti)
-  progressivoInvio?: string | null;
-  progressivoConvenzione?: string;
+  // Campi di form (non estraibili dai documenti). Richiedente: sempre presente
+  // per le rinnovazioni, ma opzionale lato SAPES. Residenze, progressivi e i flag
+  // esente/rinuncia non si chiedono qui (residenze dalla nota; il resto è inerte).
   denominazioneRichiedente?: string | null;
   cfRichiedente?: string | null;
   indirizzoRichiedente?: string | null;
-  attoEsenteRegistrazione?: string; // "0" | "1"
-  rinunciaIpotecaLegale?: string; // "0" | "1"
   agevolazioni?: string[];
-  // Residenza soggetti (manuali, opzionali — non nel catasto)
-  controResidenzaIndirizzo?: string | null;
-  controResidenzaCap?: string | null;
-  favoreResidenzaCap?: string | null;
 }
 
 export interface StatoRinnovazione {
@@ -364,7 +358,7 @@ async function mockRinnovazione(input: InputRinnovazione): Promise<StatoRinnovaz
     progresso: 100,
     fase: "Completato",
     xmlBase64: Buffer.from(xml, "latin1").toString("base64"),
-    nomeFile: `rinnovazione-mock-${input.progressivoInvio || "XXX"}.xml`,
+    nomeFile: `rinnovazione-mock-${input.praticaId}.xml`,
     semaforo: "giallo",
     report: {
       n_immobili: 0,
