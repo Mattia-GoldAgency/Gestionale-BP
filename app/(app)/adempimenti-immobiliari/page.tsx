@@ -16,7 +16,7 @@ export default async function AdempimentiImmobiliariPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div>
-        <p className="text-gray-500">Seleziona l&apos;adempimento che vuoi predisporre.</p>
+        <p className="text-gray-500">Seleziona la sezione a cui vuoi accedere.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
